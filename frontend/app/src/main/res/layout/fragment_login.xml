@@ -31,7 +31,7 @@
             app:layout_constraintVertical_bias="0.065" />
 
         <EditText
-            android:id="@+id/editTextText"
+            android:id="@+id/etUsernameLogin"
             android:layout_width="320dp"
             android:layout_height="wrap_content"
             android:ems="10"
@@ -73,7 +73,7 @@
             app:layout_constraintVertical_bias="0.383" />
 
         <EditText
-            android:id="@+id/editTextTextPassword"
+            android:id="@+id/etPasswordLogin"
             android:layout_width="320dp"
             android:layout_height="wrap_content"
             android:ems="10"
@@ -87,7 +87,7 @@
             app:layout_constraintVertical_bias="0.428" />
 
         <Button
-            android:id="@+id/button"
+            android:id="@+id/buttonSignIn"
             android:layout_width="320dp"
             android:layout_height="wrap_content"
             android:text="Sign In"
@@ -99,7 +99,7 @@
             app:layout_constraintVertical_bias="0.767" />
 
         <Button
-            android:id="@+id/button2"
+            android:id="@+id/buttonToSIgnUp"
             android:layout_width="320dp"
             android:layout_height="wrap_content"
             android:text="Sign Up"
@@ -111,7 +111,7 @@
             app:layout_constraintVertical_bias="0.865" />
 
         <Button
-            android:id="@+id/button3"
+            android:id="@+id/buttonSignInWithGoogle"
             android:layout_width="320dp"
             android:layout_height="wrap_content"
             android:text="Google"
