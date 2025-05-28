@@ -34,6 +34,23 @@ Users.init({
     timestamps: false
 });
 
+class Moods extends Model {}
+Moods.init({
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    mood: DataTypes.STRING,
+    date: DataTypes.DATE,
+    reason: DataTypes.STRING
+}, {
+    sequelize,
+    modelName: 'moods',
+    tableName: 'moods',
+    timestamps: false
+});
+
 // Endpoint register
 app.post("/register", async (req, res) => {
     try {
@@ -75,6 +92,26 @@ app.post("/login", async (req, res) => {
         }
 
         res.status(200).json({ message: "Login successful", user });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// Endpoint mood
+app.post("/mood", async (req, res) => {
+    try {
+        const { mood, reason } = req.body;
+
+        if (!mood || !reason) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        const today = new Date();
+        const date = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+        const newMood = await Moods.create({ mood, date, reason });
+        res.status(201).json({ message: "Mood recorded successfully", mood: newMood });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
