@@ -4,12 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-        <!-- Tambahkan variable viewmodel atau lainnya di sini jika dibutuhkan -->
-        <!-- Contoh:
         <variable
             name="viewModel"
-            type="com.example.app.LoginViewModel" />
-        -->
+            type="com.example.mindfulu.LoginRegisterViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
