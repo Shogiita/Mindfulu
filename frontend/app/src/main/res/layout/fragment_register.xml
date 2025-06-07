@@ -4,12 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-        <!-- Tambahkan variable ViewModel di sini jika diperlukan -->
-        <!--
         <variable
             name="viewModel"
-            type="com.yourpackage.YourViewModel" />
-        -->
+            type="com.example.mindfulu.LoginRegisterViewModel" />
     </data>
 
     <FrameLayout

@@ -6,11 +6,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.example.mindfulu.databinding.FragmentRegisterBinding
 
 class RegisterFragment : Fragment() {
-
+    private val vm: LoginRegisterViewModel by viewModels()
     lateinit var binding : FragmentRegisterBinding
 
     override fun onCreateView(
@@ -25,35 +26,39 @@ class RegisterFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.buttonSignUp.setOnClickListener(){
+        vm.register.observe(viewLifecycleOwner) {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            findNavController().navigate(R.id.action_global_loginFragment)
+            Toast.makeText(context, "Register Success", Toast.LENGTH_SHORT).show()
+        }
 
-            var username = binding.etUsernameRegister.text.toString()
-            var name = binding.etNameRegister.text.toString()
-            var email = binding.etEmailRegister.text.toString()
-            var password = binding.etPasswordRegister.text.toString()
-            var confirmpassword = binding.etCPasswordRegister.text.toString()
+        vm.registerError.observe(viewLifecycleOwner) {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
 
-            if(username.isEmpty() || name.isEmpty() || email.isEmpty() || password.isEmpty() || confirmpassword.isEmpty()){
-                Toast.makeText(context, "There's An Empty Field!!",Toast.LENGTH_SHORT).show()
-            }else{
-                if(!email.contains("@") || !email.contains(".")){
-                    Toast.makeText(context, "Invalid Email!!", Toast.LENGTH_SHORT).show()
-                }else{
-                    if(password.length < 8 || confirmpassword.length < 8){
-                        Toast.makeText(context, "Password too short!!", Toast.LENGTH_SHORT).show()
-                    }else{
-                        if(password != confirmpassword){
-                            Toast.makeText(context, "Invalid Password!!", Toast.LENGTH_SHORT).show()
-                        }else{
-                            Toast.makeText(context, "Register Success!!", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
+        binding.buttonSignUp.setOnClickListener {
+            val username = binding.etUsernameRegister.text.toString().trim()
+            val name = binding.etNameRegister.text.toString().trim()
+            val email = binding.etEmailRegister.text.toString().trim()
+            val password = binding.etPasswordRegister.text.toString()
+            val confirmpassword = binding.etCPasswordRegister.text.toString()
+
+            if (username.isEmpty() || name.isEmpty() || email.isEmpty() || password.isEmpty() || confirmpassword.isEmpty()) {
+                Toast.makeText(context, "There's an empty field!", Toast.LENGTH_SHORT).show()
+            } else if (!email.contains("@") || !email.contains(".")) {
+                Toast.makeText(context, "Invalid email format!", Toast.LENGTH_SHORT).show()
+            } else if (password.length < 8) {
+                Toast.makeText(context, "Password must be at least 8 characters", Toast.LENGTH_SHORT).show()
+            } else if (password != confirmpassword) {
+                Toast.makeText(context, "Passwords do not match!", Toast.LENGTH_SHORT).show()
+            } else {
+                vm.register(username, name, email, password)
             }
         }
 
-        binding.buttonToSignIn.setOnClickListener(){
+        binding.buttonToSignIn.setOnClickListener {
             findNavController().navigate(R.id.action_global_loginFragment)
         }
     }
+
 }

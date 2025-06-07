@@ -6,10 +6,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import com.example.mindfulu.databinding.FragmentLoginBinding
 
 class LoginFragment : Fragment() {
+    private val vm : LoginRegisterViewModel by viewModels()
     lateinit var binding : FragmentLoginBinding
 
     override fun onCreateView(
@@ -23,21 +26,31 @@ class LoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.buttonSignIn.setOnClickListener(){
-            var username = binding.etUsernameLogin.text.toString()
-            var password = binding.etPasswordLogin.text.toString()
+        vm.login.observe(viewLifecycleOwner) {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "berhasil login", Toast.LENGTH_SHORT).show()
+        }
 
-            if(username.isEmpty() || password.isEmpty()){
-                Toast.makeText(context,"There's an Empty Field",Toast.LENGTH_SHORT).show()
-            }else{
-                Toast.makeText(context,"Login Success",Toast.LENGTH_SHORT).show()
+        vm.loginError.observe(viewLifecycleOwner) {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+
+        binding.buttonSignIn.setOnClickListener {
+            val username = binding.etUsernameLogin.text.toString().trim()
+            val password = binding.etPasswordLogin.text.toString()
+
+            if (username.isEmpty() || password.isEmpty()) {
+                Toast.makeText(context, "There's an empty field!", Toast.LENGTH_SHORT).show()
+            } else {
+                vm.login(username, password)
             }
         }
 
-        binding.buttonToSIgnUp.setOnClickListener(){
+        binding.buttonToSIgnUp.setOnClickListener {
             findNavController().navigate(R.id.action_global_registerFragment)
         }
     }
+
 
 
 
