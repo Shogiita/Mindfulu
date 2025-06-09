@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("kotlin-parcelize")
     id("kotlin-kapt")
 }
 
@@ -28,35 +29,53 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
-
-    buildFeatures{
-        dataBinding = true
+    buildFeatures {
+        viewBinding = true
     }
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
-    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+    implementation(libs.androidx.constraintlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("androidx.activity:activity-ktx:1.10.1")
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
-    implementation("com.squareup.moshi:moshi:1.15.2")
-    implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
-    kapt("com.squareup.moshi:moshi-kotlin-codegen:1.15.2")
+
+    // coroutines
+    implementation(libs.kotlinx.coroutines.core)
+
+    //fragment
+    implementation (libs.androidx.fragment.ktx)
+
+    //view model
+    implementation(libs.androidx.lifecycle.viewmodel.ktx.v270)
+    implementation(libs.androidx.lifecycle.livedata.core.ktx)
+    implementation(libs.androidx.activity.ktx)
+
+    // room db (local storage)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
+
+    //connect to API (retrofit)
+    implementation (libs.retrofit)
+    implementation (libs.converter.moshi)
+    implementation (libs.okhttp)
+    implementation (libs.logging.interceptor)
+    implementation (libs.moshi)
+    implementation (libs.moshi.kotlin)
+    kapt(libs.moshi.kotlin.codegen)
+    implementation (libs.picasso)
 }
