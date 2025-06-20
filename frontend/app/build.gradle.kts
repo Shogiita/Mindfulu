@@ -1,7 +1,7 @@
 plugins {
-    id("com.android.application")
-    // alias(libs.plugins.android.application)
+    alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+//    id("com.android.application")
     id("kotlin-parcelize")
     id("kotlin-kapt")
     id("com.google.gms.google-services")
@@ -40,6 +40,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        dataBinding = true
     }
 }
 
