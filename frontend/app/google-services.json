@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "87979008661",
+    "project_id": "mindfulu-e9c74",
+    "storage_bucket": "mindfulu-e9c74.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:87979008661:android:90d6ea8b33e1ab5b19319c",
+        "android_client_info": {
+          "package_name": "com.example.mindfulu"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "87979008661-uaehcrj9pslg64nhftjocfidh10mdm6d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mindfulu",
+            "certificate_hash": "7a8ea588b1c31b9b249113cc9cf2744bb52e13b7"
+          }
+        },
+        {
+          "client_id": "87979008661-dl6h09m2eui071lk7m32hmbh811e646r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBddVZ7fw3F9NsN4GkhRXP6Jt5W4gsCNPg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "87979008661-dl6h09m2eui071lk7m32hmbh811e646r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
