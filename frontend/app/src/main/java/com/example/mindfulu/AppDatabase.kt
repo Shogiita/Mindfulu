@@ -5,10 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [MoodEntity::class.java], version = 1)
+@Database(entities = [MoodEntity::class], version = 1)
 abstract class AppDatabase : RoomDatabase() {
 
-    abstract fun moodDao : MoodDao()
+    abstract fun moodDao(): MoodDao
+
     companion object{
         @Volatile
         private var INSTANCE: AppDatabase? = null
