@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "87979008661-pi4uj5fn9brfrjkumbob2pqn8ohmeima.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mindfulu",
+            "certificate_hash": "62bf2dfc438638368f6446d345fdbc5edb3f3862"
+          }
+        },
+        {
           "client_id": "87979008661-uaehcrj9pslg64nhftjocfidh10mdm6d.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

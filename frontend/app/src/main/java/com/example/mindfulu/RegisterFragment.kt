@@ -37,11 +37,7 @@ class RegisterFragment : Fragment() {
         vm.error.observe(viewLifecycleOwner) { errorMessage ->
             Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
         }
-
-        // Observer loading
-        vm.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.progressBarRegister.isVisible = isLoading
-        }
+        
 
         // Tombol Register
         binding.buttonSignUp.setOnClickListener {

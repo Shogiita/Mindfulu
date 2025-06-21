@@ -40,6 +40,7 @@ android {
 
     buildFeatures {
         dataBinding = true
+        viewBinding = true
     }
 }
 
@@ -75,6 +76,8 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    implementation ("com.google.android.material:material:1.12.0")
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
 
@@ -99,6 +102,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+
+
 }
 
 // You should remove this entire `plugins {}` block from your app-level build.gradle.

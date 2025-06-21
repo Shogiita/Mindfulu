@@ -45,7 +45,7 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
         auth = Firebase.auth
 
         // Google Sign-In config
@@ -128,7 +128,7 @@ class LoginFragment : Fragment() {
     }
 
     private fun navigateToHome() {
-        val intent = Intent(activity, HomeActivity::class.java)
+        val intent = Intent(activity, MoodInsertActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         activity?.finish()
