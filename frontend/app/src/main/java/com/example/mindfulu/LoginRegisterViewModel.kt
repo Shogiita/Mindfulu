@@ -3,41 +3,88 @@ package com.example.mindfulu
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.a222117007_m7.App
+// TAMBAHKAN SEMUA IMPORT DARI PAKET 'data' DI SINI
+import com.example.mindfulu.data.AuthResponse
+import com.example.mindfulu.data.ErrorResponse
+import com.example.mindfulu.data.LoginRequest
+import com.example.mindfulu.data.RegisterRequest
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
 class LoginRegisterViewModel : ViewModel() {
 
-    private val _register = MutableLiveData<String>()
-    val register: LiveData<String> get() = _register
+    private val _registerResult = MutableLiveData<AuthResponse>()
+    val registerResult: LiveData<AuthResponse> get() = _registerResult
 
-    private val _registerError = MutableLiveData<String>()
-    val registerError: LiveData<String> get() = _registerError
+    private val _loginResult = MutableLiveData<AuthResponse>()
+    val loginResult: LiveData<AuthResponse> get() = _loginResult
 
-    private val _login = MutableLiveData<String>()
-    val login: LiveData<String> get() = _login
+    private val _error = MutableLiveData<String>()
+    val error: LiveData<String> get() = _error
 
-    private val _loginError = MutableLiveData<String>()
-    val loginError: LiveData<String> get() = _loginError
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> get() = _isLoading
+
+    private val apiService = App.retrofitService
 
     fun login(username: String, password: String) {
-        val user = MockDB.users.find { it.username == username && it.password == password }
-        if (user != null) {
-            _login.value = "Login  as ${user.username}"
-        } else {
-            _loginError.value = "Incorrect username or password"
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                val request = LoginRequest(username, password) // Baris ini butuh import
+                val response = apiService.login(request)
+
+                if (response.isSuccessful) {
+                    _loginResult.postValue(response.body())
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        val errorResponse = App.moshi.adapter(ErrorResponse::class.java).fromJson(errorBody ?: "")
+                        errorResponse?.message ?: "Unknown login error"
+                    } catch (e: Exception) {
+                        "Invalid username or password"
+                    }
+                    _error.postValue(errorMessage)
+                }
+            } catch (e: HttpException) {
+                _error.postValue("A network error occurred: ${e.message()}")
+            } catch (e: IOException) {
+                _error.postValue("Could not connect to the server. Please check your network.")
+            } finally {
+                _isLoading.postValue(false)
+            }
         }
     }
 
-    fun register(username: String, name: String, email: String, password: String) {
-        val existingUser = MockDB.users.find {
-            it.username == username || it.email == email
-        }
+    fun register(username: String, name: String, email: String, password: String, cpassword: String) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                val request = RegisterRequest(username, name, email, password, cpassword) // Baris ini juga butuh import
+                val response = apiService.register(request)
 
-        if (existingUser != null) {
-            _registerError.value = "Email or username already in use"
-        } else {
-            val newUser = User(username, name, email, password)
-            MockDB.addUser(newUser)
-            _register.value = "Registration $username success1"
+                if (response.isSuccessful) {
+                    _registerResult.postValue(response.body())
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        val errorResponse = App.moshi.adapter(ErrorResponse::class.java).fromJson(errorBody ?: "")
+                        errorResponse?.message ?: "Registration failed"
+                    } catch (e: Exception) {
+                        "An unknown error occurred"
+                    }
+                    _error.postValue(errorMessage)
+                }
+            } catch (e: HttpException) {
+                _error.postValue("A network error occurred: ${e.message()}")
+            } catch (e: IOException) {
+                _error.postValue("Could not connect to the server. Please check your network.")
+            } finally {
+                _isLoading.postValue(false)
+            }
         }
     }
 }

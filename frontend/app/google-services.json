@@ -12,7 +12,20 @@
           "package_name": "com.example.mindfulu"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "87979008661-uaehcrj9pslg64nhftjocfidh10mdm6d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mindfulu",
+            "certificate_hash": "7a8ea588b1c31b9b249113cc9cf2744bb52e13b7"
+          }
+        },
+        {
+          "client_id": "87979008661-dl6h09m2eui071lk7m32hmbh811e646r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBddVZ7fw3F9NsN4GkhRXP6Jt5W4gsCNPg"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "87979008661-dl6h09m2eui071lk7m32hmbh811e646r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
