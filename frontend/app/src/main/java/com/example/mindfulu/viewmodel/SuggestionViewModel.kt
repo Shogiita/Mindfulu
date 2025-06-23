@@ -4,13 +4,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mindfulu.App
+import com.example.mindfulu.data.SuggestionRequest
 import com.example.mindfulu.data.SuggestionResponse
-import com.example.mindfulu.repository.SuggestionRepository
 import kotlinx.coroutines.launch
 
 class SuggestionViewModel : ViewModel() {
-    private val suggestionRepository = SuggestionRepository()
-
     private val _suggestions = MutableLiveData<SuggestionResponse>()
     val suggestions: LiveData<SuggestionResponse> get() = _suggestions
 
@@ -23,16 +22,18 @@ class SuggestionViewModel : ViewModel() {
     fun getSuggestions(mood: String, reason: String) {
         _isLoading.value = true
         viewModelScope.launch {
-            val result = suggestionRepository.getSuggestions(mood, reason)
-            result.fold(
-                onSuccess = { suggestionResponse ->
-                    _suggestions.postValue(suggestionResponse)
-                },
-                onFailure = { exception ->
-                    _error.postValue(exception.message ?: "Failed to get suggestions")
+            try {
+                val response = App.retrofitService.getSuggestions(SuggestionRequest(mood, reason))
+                if (response.isSuccessful && response.body() != null) {
+                    _suggestions.postValue(response.body())
+                } else {
+                    _error.postValue("Error: ${response.code()} - ${response.message()}")
                 }
-            )
-            _isLoading.postValue(false)
+            } catch (e: Exception) {
+                _error.postValue("Network error: ${e.message}")
+            } finally {
+                _isLoading.postValue(false)
+            }
         }
     }
 }
