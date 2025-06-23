@@ -1,4 +1,4 @@
-package com.example.mindfulu.response
+package com.example.mindfulu.data
 
 import com.example.mindfulu.MoodData
 

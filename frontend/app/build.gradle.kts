@@ -2,7 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.kapt") // Required for Room & Moshi Codegen
-    id("com.google.gms.google-services") // Add this line here
+    id("com.google.gms.google-services") // For Firebase
+    id("kotlin-parcelize") // Ditambahkan: Diperlukan untuk @Parcelize di data class
 }
 
 android {
@@ -70,12 +71,14 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     // Ensure you are using the latest Play Services Auth. 21.0.0 is current as of June 2025.
     implementation("com.google.android.gms:play-services-auth:21.0.0")
+    implementation(libs.firebase.firestore.ktx) // Tetap ada jika Anda berencana menggunakan Firestore
 
     // Credential Manager
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    // Material Design (Jika sudah ada di libs.material, yang ini mungkin duplikat. Biarkan dulu jika belum konflik)
     implementation ("com.google.android.material:material:1.12.0")
 
     // Coroutines
@@ -84,7 +87,6 @@ dependencies {
     // Room
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
-    implementation(libs.firebase.firestore.ktx)
     kapt(libs.androidx.room.compiler)
 
     // Networking
@@ -103,18 +105,4 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
-
-
 }
-
-// You should remove this entire `plugins {}` block from your app-level build.gradle.
-// These `apply false` plugin declarations belong in your project-level build.gradle or settings.gradle.
-/*
-plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    id("androidx.navigation.safeargs.kotlin") version "2.8.7" apply false
-    id("com.google.gms.google-services") version "4.4.2" apply false
-}
-*/

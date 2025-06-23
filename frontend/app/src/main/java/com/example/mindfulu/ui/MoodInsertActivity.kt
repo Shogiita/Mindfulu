@@ -5,67 +5,131 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.Button
-import android.widget.ImageButton // Change Button to ImageButton for emojis
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import com.example.mindfulu.R
+import com.example.mindfulu.databinding.ActivityMoodInsertBinding
+import com.example.mindfulu.data.SuggestionRequest
+import com.example.mindfulu.viewmodel.MoodViewModel
+import com.example.mindfulu.viewmodel.SuggestionViewModel
+import com.example.mindfulu.data.SuggestionResponse
 
 class MoodInsertActivity : AppCompatActivity() {
-    var MoodSelected: String = ""
-    private lateinit var SadEmoji: ImageButton
-    private lateinit var BadEmoji: ImageButton
-    private lateinit var HappyEmoji: ImageButton
-    private lateinit var LovelyEmoji: ImageButton
-    private lateinit var SubmitButton: Button
+    private var moodSelected: String = ""
+    private var reasonText: String = ""
+
+    private lateinit var binding: ActivityMoodInsertBinding
+    private val moodViewModel: MoodViewModel by viewModels()
+    private val suggestionViewModel: SuggestionViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_mood_insert)
+
+        binding = ActivityMoodInsertBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        SadEmoji = findViewById(R.id.SadEmoji)
-        BadEmoji = findViewById(R.id.BadEmoji)
-        HappyEmoji = findViewById(R.id.HappyEmoji)
-        LovelyEmoji = findViewById(R.id.LovelyEmoji)
-        SubmitButton = findViewById(R.id.SubmitButton)
+        setupObservers()
+        setupClickListeners()
+    }
 
-        SadEmoji.setOnClickListener {
-            MoodSelected = "Sad"
-            SadEmoji.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#00FF00"))
-            BadEmoji.backgroundTintList = null
-            HappyEmoji.backgroundTintList = null
-            LovelyEmoji.backgroundTintList = null
-            Toast.makeText(this, "SAD", Toast.LENGTH_SHORT).show()
-        }
+    private fun setupObservers() {
+        moodViewModel.moodResult.observe(this) { moodResponse ->
+            Toast.makeText(this, "Mood saved: ${moodResponse.message}", Toast.LENGTH_SHORT).show()
 
-        BadEmoji.setOnClickListener {
-            MoodSelected = "Bad"
-        }
-
-        HappyEmoji.setOnClickListener {
-            MoodSelected = "Happy"
-        }
-
-        LovelyEmoji.setOnClickListener {
-            MoodSelected = "Lovely"
-
-        }
-
-        SubmitButton.setOnClickListener {
-            if(MoodSelected != ""){
-                val intent = Intent(this, HomeActivity::class.java)
-                startActivity(intent)
-            } else {
-                Toast.makeText(this, "Mood must be selected", Toast.LENGTH_SHORT).show()
+            if (moodSelected.isNotEmpty() && reasonText.isNotEmpty()) {
+                suggestionViewModel.getSuggestions(moodSelected, reasonText)
             }
         }
+
+        suggestionViewModel.suggestions.observe(this) { suggestionResponse: SuggestionResponse ->
+            val intent = Intent(this, HomeActivity::class.java).apply {
+                putExtra("suggestions_data", suggestionResponse)
+            }
+            startActivity(intent)
+            finish()
+        }
+
+        moodViewModel.error.observe(this) { error ->
+            Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
+        }
+
+        suggestionViewModel.error.observe(this) { error ->
+            Toast.makeText(this, "Suggestion Error: $error", Toast.LENGTH_LONG).show()
+            navigateToHome()
+        }
+
+        moodViewModel.isLoading.observe(this) { isLoading ->
+            binding.progressBar.isVisible = isLoading
+        }
+
+        suggestionViewModel.isLoading.observe(this) { isLoading ->
+            binding.progressBar.isVisible = isLoading
+        }
+    }
+
+    private fun setupClickListeners() {
+        binding.SadEmoji.setOnClickListener {
+            selectMood("Sad", binding.SadEmoji)
+        }
+
+        binding.BadEmoji.setOnClickListener {
+            selectMood("Bad", binding.BadEmoji)
+        }
+
+        binding.HappyEmoji.setOnClickListener {
+            selectMood("Happy", binding.HappyEmoji)
+        }
+
+        binding.LovelyEmoji.setOnClickListener {
+            selectMood("Lovely", binding.LovelyEmoji)
+        }
+
+        binding.SubmitButton.setOnClickListener {
+            reasonText = binding.etReason.text.toString().trim()
+
+            when {
+                moodSelected.isEmpty() -> {
+                    Toast.makeText(this, "Please select a mood", Toast.LENGTH_SHORT).show()
+                }
+                reasonText.isEmpty() -> {
+                    Toast.makeText(this, "Please provide a reason", Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    moodViewModel.postMood(moodSelected, reasonText)
+                }
+            }
+        }
+    }
+
+    private fun selectMood(mood: String, selectedButton: ImageButton) {
+        moodSelected = mood
+
+        binding.SadEmoji.backgroundTintList = null
+        binding.BadEmoji.backgroundTintList = null
+        binding.HappyEmoji.backgroundTintList = null
+        binding.LovelyEmoji.backgroundTintList = null
+
+        selectedButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#00FF00"))
+
+        Toast.makeText(this, "$mood selected", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun navigateToHome() {
+        val intent = Intent(this, HomeActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 }
