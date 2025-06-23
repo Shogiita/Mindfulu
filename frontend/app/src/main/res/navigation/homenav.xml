@@ -17,7 +17,7 @@
         tools:layout="@layout/fragment_history" />
     <fragment
         android:id="@+id/overviewFragment"
-        android:name="com.example.mindfulu.OverviewFragment"
+        android:name="com.example.mindfulu.ui.OverviewFragment"
         android:label="fragment_overview"
         tools:layout="@layout/fragment_overview" />
     <fragment

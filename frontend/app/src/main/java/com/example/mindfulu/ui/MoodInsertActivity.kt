@@ -1,4 +1,4 @@
-package com.example.mindfulu
+package com.example.mindfulu.ui
 
 import android.content.Intent
 import android.content.res.ColorStateList
@@ -11,7 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.mindfulu.ui.HomeActivity
+import com.example.mindfulu.R
 
 class MoodInsertActivity : AppCompatActivity() {
     var MoodSelected: String = ""

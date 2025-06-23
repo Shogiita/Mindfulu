@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/background"
     android:backgroundTintMode="add"
-    tools:context=".MoodInsertActivity">
+    tools:context=".ui.MoodInsertActivity">
 
     <TextView
         android:id="@+id/textView16"
