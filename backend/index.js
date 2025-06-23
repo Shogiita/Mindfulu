@@ -42,25 +42,6 @@ Moods.init({
 app.post("/mood", async (req, res) => {
     try {
         const { mood, reason } = req.body;
-<<<<<<< Updated upstream
-
-        if (!mood || !reason) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        const today = new Date();
-        const date = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
-
-        const newMood = await Moods.create({ mood, date, reason });
-        res.status(201).json({ message: "Mood recorded successfully", mood: newMood });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
-
-
-=======
         if (!mood || !reason) {
             return res.status(400).json({ message: "Mood dan alasan wajib diisi" });
         }
@@ -73,7 +54,6 @@ app.post("/mood", async (req, res) => {
         res.status(500).json({ message: "Terjadi kesalahan pada server" });
     }
 });
->>>>>>> Stashed changes
 
 // Endpoint untuk mendapatkan saran dari Gemini DAN mencari video di YouTube
 app.post("/suggestions", async (req, res) => {
