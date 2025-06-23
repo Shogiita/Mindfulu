@@ -13,6 +13,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import com.example.mindfulu.MoodInsertActivity
 import com.example.mindfulu.viewmodel.LoginRegisterViewModel
 import com.example.mindfulu.R
 import com.example.mindfulu.databinding.FragmentLoginBinding

@@ -10,13 +10,14 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface WebService {
     @POST("mood")
     suspend fun postMood(@Body request: MoodRequest): Response<MoodResponse>
 
     @GET("mood")
-    suspend fun getMoodHistory(): Response<List<MoodData>>
+    suspend fun getMoodHistory(@Query("email") email: String): Response<List<MoodData>>
 
     @POST("register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>

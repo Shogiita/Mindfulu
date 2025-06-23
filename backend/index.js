@@ -6,7 +6,7 @@ const admin = require('firebase-admin');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 // --- INISIALISASI FIREBASE ADMIN ---
-// Ganti dengan path ke file kunci akun layanan Anda yang diunduh dari Firebase
+// Pastikan file serviceAccountKey.json ada di folder backend.
 const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
@@ -24,16 +24,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- KONEKSI DATABASE (SEQUELIZE) ---
-// Kode ini tetap ada jika Anda masih menggunakannya untuk endpoint lain.
 const sequelize = new Sequelize(
-    "mdpceria", // Nama Database dari kode terbaru Anda
+    "mdpceria", // Nama Database
     "root",      // User
     "",          // Password
     {
         host: "127.0.0.1", 
         port: 3306,
         dialect: "mysql",
-        logging: console.log, // Aktifkan logging untuk melihat query SQL di konsol
+        logging: console.log,
     }
 );
 
@@ -57,12 +56,13 @@ Moods.init({
 // Endpoint untuk menangani POST request ke /mood menggunakan Firestore
 app.post("/mood", async (req, res) => {
     try {
-        const { mood, reason } = req.body;
-        if (!mood || !reason) {
-            return res.status(400).json({ message: "Mood dan alasan wajib diisi" });
+        const { mood, reason, email } = req.body;
+        if (!mood || !reason || !email) {
+            return res.status(400).json({ message: "Mood, alasan, dan email wajib diisi" });
         }
         const today = new Date();
         const moodData = {
+            email: email,
             mood: mood,
             reason: reason,
             date: admin.firestore.Timestamp.fromDate(today) 
@@ -70,6 +70,7 @@ app.post("/mood", async (req, res) => {
         const docRef = await db.collection('moods').add(moodData);
         const responseMood = {
             id: docRef.id,
+            email: moodData.email,
             mood: moodData.mood,
             reason: moodData.reason,
             date: moodData.date.toMillis()
@@ -81,26 +82,28 @@ app.post("/mood", async (req, res) => {
     }
 });
 
-// [BARU] Endpoint untuk mendapatkan semua riwayat mood dari Firestore
+// Endpoint untuk mendapatkan riwayat mood dari Firestore berdasarkan email
 app.get("/mood", async (req, res) => {
     try {
+        const userEmail = req.query.email;
+        if (!userEmail) {
+            return res.status(400).json({ message: "Parameter email wajib diisi" });
+        }
+
         const moodsRef = db.collection('moods');
-        // Mengambil semua dokumen dan mengurutkannya berdasarkan tanggal, dari yang terbaru
-        const snapshot = await moodsRef.orderBy('date', 'desc').get();
+        const snapshot = await moodsRef.where('email', '==', userEmail).orderBy('date', 'desc').get();
 
         if (snapshot.empty) {
-            // Jika tidak ada data, kirim array kosong agar klien tidak error
             return res.status(200).json([]);
         }
 
-        // Memetakan setiap dokumen ke format yang diharapkan oleh klien Android (MoodData)
         const moodHistory = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
+                email: data.email,
                 mood: data.mood,
                 reason: data.reason,
-                // Mengonversi Firestore Timestamp ke milidetik (Long)
                 date: data.date.toMillis() 
             };
         });
@@ -114,7 +117,7 @@ app.get("/mood", async (req, res) => {
 });
 
 
-// Endpoint /suggestions tetap tidak berubah
+// [DIUBAH] Endpoint /suggestions sekarang membangun respons secara manual untuk menjamin konsistensi
 app.post("/suggestions", async (req, res) => {
     try {
         const { mood, reason } = req.body;
@@ -171,41 +174,48 @@ app.post("/suggestions", async (req, res) => {
 
         if (!suggestionsText) throw new Error("Respons dari Gemini API kosong atau tidak valid.");
 
-        let suggestions;
+        let geminiSuggestions;
         try {
             const jsonString = suggestionsText.substring(suggestionsText.indexOf('{'), suggestionsText.lastIndexOf('}') + 1);
-            suggestions = JSON.parse(jsonString);
+            geminiSuggestions = JSON.parse(jsonString);
         } catch (parseError) {
             console.error("Gagal mem-parse JSON dari Gemini. Teks Mentah:", suggestionsText);
             throw new Error("Respons dari AI tidak dapat diproses (format JSON tidak valid).");
         }
+        
+        // [BARU] Validasi struktur dari Gemini dan ekstrak datanya
+        if (!geminiSuggestions || !geminiSuggestions.saranMusik || !geminiSuggestions.saranKegiatan) {
+            throw new Error("Struktur JSON dari Gemini API tidak sesuai harapan.");
+        }
 
-        const { judul, artis } = suggestions.saranMusik;
+        const { judul, artis, alasan } = geminiSuggestions.saranMusik;
+        const kegiatan = geminiSuggestions.saranKegiatan;
+
+        // Mencari video YouTube
         let validVideoLink = null;
         const searchQuery = encodeURIComponent(`${judul} ${artis}`);
         const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${YOUTUBE_API_KEY}&maxResults=1&type=video&videoEmbeddable=true&order=relevance`;
-
-        console.log("Mencari di YouTube dengan URL:", searchUrl);
-
         const searchResponse = await fetch(searchUrl);
         if (searchResponse.ok) {
             const searchResult = await searchResponse.json();
             if (searchResult.items && searchResult.items.length > 0) {
                 const videoId = searchResult.items[0].id.videoId;
                 validVideoLink = `https://www.youtube.com/watch?v=${videoId}`;
-                console.log(`Video ditemukan: ${validVideoLink}`);
-            } else {
-                console.warn(`Tidak ditemukan video yang cocok untuk "${judul} - ${artis}".`);
             }
-        } else {
-            console.error("Panggilan API YouTube gagal:", searchResponse.status);
-            const errorBody = await searchResponse.text();
-            console.error("Isi Error:", errorBody);
         }
 
-        suggestions.saranMusik.linkVideo = validVideoLink;
+        // [BARU] Membangun objek respons final secara manual untuk memastikan strukturnya benar
+        const finalSuggestions = {
+            saranMusik: {
+                judul: judul || "Tidak ada judul",
+                artis: artis || "Tidak ada artis",
+                alasan: alasan || "Tidak ada alasan",
+                linkVideo: validVideoLink
+            },
+            saranKegiatan: kegiatan || []
+        };
 
-        res.status(200).json({ message: "Saran berhasil didapatkan", suggestions });
+        res.status(200).json({ message: "Saran berhasil didapatkan", suggestions: finalSuggestions });
 
     } catch (error) {
         console.error("Suggestions Error:", error);

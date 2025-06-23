@@ -6,8 +6,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mindfulu.MoodData
-import com.example.mindfulu.repository.MoodRepository
 import com.example.mindfulu.data.MoodResponse
+import com.example.mindfulu.repository.MoodRepository
 import kotlinx.coroutines.launch
 
 class MoodViewModel : ViewModel() {
@@ -25,11 +25,12 @@ class MoodViewModel : ViewModel() {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> get() = _isLoading
 
-    fun postMood(mood: String, reason: String) {
+    // [DIUBAH] Fungsi sekarang menerima email dan meneruskannya ke repository
+    fun postMood(mood: String, reason: String, email: String) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val result = moodRepository.postMood(mood, reason)
+                val result = moodRepository.postMood(mood, reason, email)
                 result.fold(
                     onSuccess = { moodResponse ->
                         _moodResult.postValue(moodResponse)
@@ -41,8 +42,6 @@ class MoodViewModel : ViewModel() {
                                 "Cannot connect to server. Please check your internet connection and server status."
                             exception.message?.contains("SocketTimeoutException") == true ->
                                 "Connection timeout. Please try again."
-                            exception.message?.contains("UnknownHostException") == true ->
-                                "Cannot reach server. Please check server address."
                             else -> exception.message ?: "Failed to post mood"
                         }
                         _error.postValue(errorMessage)
@@ -58,11 +57,12 @@ class MoodViewModel : ViewModel() {
         }
     }
 
-    fun getAllMoods() {
+    // [DIUBAH] Fungsi sekarang menerima email dan meneruskannya ke repository
+    fun getAllMoods(email: String) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val result = moodRepository.getAllMoods()
+                val result = moodRepository.getAllMoods(email)
                 result.fold(
                     onSuccess = { moods ->
                         _moodHistory.postValue(moods)
