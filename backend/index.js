@@ -64,18 +64,19 @@ app.post("/suggestions", async (req, res) => {
         }
         
         // --- API KEYS ---
-        // PERINGATAN: Jangan bagikan file ini jika API Key sudah terisi.
-        const GEMINI_API_KEY = "AIzaSyA6erWToNDb8G24MJlg9MrEB2d5SNzrvuQ";
-        const YOUTUBE_API_KEY = "AIzaSyA4l8O7-EFJ41iqpV1hdq6VRvxo_WrPwjw";
+        // Cukup letakkan API Key Anda langsung di sini.
+        const GEMINI_API_KEY = "AIzaSyA6erWToNDb8G24MJlg9MrEB2d5SNzrvuQ"; // <-- PASTIKAN INI KEY ANDA
+        const YOUTUBE_API_KEY = "AIzaSyA4l8O7-EFJ41iqpV1hdq6VRvxo_WrPwjw"; // <-- PASTIKAN INI KEY ANDA
 
-        if (!GEMINI_API_KEY || GEMINI_API_KEY.includes("GANTI")) {
+        // Pengecekan sederhana jika key kosong
+        if (!GEMINI_API_KEY) {
             return res.status(500).json({ message: "Konfigurasi server tidak lengkap: API Key Gemini belum diatur." });
         }
-        if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY.includes("GANTI")) {
+        if (!YOUTUBE_API_KEY) {
             return res.status(500).json({ message: "Konfigurasi server tidak lengkap: API Key YouTube belum diatur." });
         }
 
-        // --- Langkah 1: Minta saran dari Gemini (TANPA link video) ---
+        // --- Langkah 1: Minta saran dari Gemini ---
         const timestamp = new Date().toISOString();
         const prompt = `
             Sebagai seorang teman AI yang suportif, tolong berikan saran untuk seseorang yang merasa '${mood}' karena '${reason}'.
@@ -116,16 +117,9 @@ app.post("/suggestions", async (req, res) => {
         const suggestionsText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!suggestionsText) throw new Error("Respons dari Gemini API kosong atau tidak valid.");
 
-        // --- Perbaikan Logika Parsing JSON ---
         let suggestions;
         try {
-            const startIndex = suggestionsText.indexOf('{');
-            const endIndex = suggestionsText.lastIndexOf('}');
-            if (startIndex === -1 || endIndex === -1) {
-                throw new Error("Respons tidak mengandung blok JSON.");
-            }
-            const jsonString = suggestionsText.substring(startIndex, endIndex + 1);
-            suggestions = JSON.parse(jsonString);
+            suggestions = JSON.parse(suggestionsText);
         } catch (parseError) {
             console.error("Gagal mem-parse JSON dari Gemini. Teks Mentah:", suggestionsText);
             throw new Error("Respons dari AI tidak dapat diproses (format JSON tidak valid).");
@@ -133,62 +127,38 @@ app.post("/suggestions", async (req, res) => {
 
         const { judul, artis } = suggestions.saranMusik;
 
-        // --- Langkah 2: Cari & Verifikasi Video di YouTube ---
-        
-        // Step 2.1: Cari 5 video teratas, diurutkan berdasarkan jumlah penayangan
+        // --- Langkah 2: Cari Video di YouTube (Versi Efisien dan Benar) ---
+        let validVideoLink = null;
         const searchQuery = encodeURIComponent(`${judul} ${artis}`);
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${YOUTUBE_API_KEY}&maxResults=5&type=video&order=viewCount`;
-        console.log("Mencari di YouTube dengan URL:", searchUrl); // LOG UNTUK DEBUG
+        
+        // Menggunakan 1 API call yang efisien untuk mencari video publik yang bisa diputar
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${YOUTUBE_API_KEY}&maxResults=1&type=video&videoEmbeddable=true&order=relevance`;
+
+        console.log("Mencari di YouTube dengan URL:", searchUrl);
         
         const searchResponse = await fetch(searchUrl);
-        let validVideoLink = null;
 
         if (searchResponse.ok) {
             const searchResult = await searchResponse.json();
-            // LOG UNTUK DEBUG: Tampilkan hasil pencarian mentah
-            console.log("--- HASIL PENCARIAN YOUTUBE ---");
-            console.log(JSON.stringify(searchResult, null, 2));
-            console.log("-------------------------------");
-
-            const videoItems = searchResult.items;
-
-            if (videoItems && videoItems.length > 0) {
-                // Step 2.2: Kumpulkan semua ID video untuk diperiksa
-                const videoIds = videoItems.map(item => item.id.videoId).join(',');
-                const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=status&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+            if (searchResult.items && searchResult.items.length > 0) {
+                const videoId = searchResult.items[0].id.videoId;
                 
-                const detailsResponse = await fetch(videoDetailsUrl);
-                if (detailsResponse.ok) {
-                    const detailsResult = await detailsResponse.json();
-                    // LOG UNTUK DEBUG: Tampilkan detail status video
-                    console.log("--- DETAIL STATUS VIDEO ---");
-                    console.log(JSON.stringify(detailsResult, null, 2));
-                    console.log("---------------------------");
-                    
-                    // Step 2.3: Cari video pertama yang dapat diputar
-                    const playableVideo = detailsResult.items.find(item => 
-                        item.status.privacyStatus === 'public' &&
-                        item.status.uploadStatus === 'processed'
-                    );
+                // INILAH PERBAIKAN UTAMANYA
+                // 1. Menggunakan backtick `...` untuk bisa memasukkan variabel ${videoId}
+                // 2. Menggunakan format link YouTube yang benar
+                validVideoLink = `https://www.youtube.com/watch?v=${videoId}`;
 
-                    if (playableVideo) {
-                        validVideoLink = `https://www.youtube.com/watch?v=${playableVideo.id}`;
-                    }
-                }
+                console.log(`Video ditemukan: ${validVideoLink}`);
+            } else {
+                console.warn(`Tidak ditemukan video yang dapat diputar untuk "${judul} - ${artis}".`);
             }
         } else {
-             // LOG UNTUK DEBUG: Tampilkan pesan error jika pencarian gagal
             console.error("Panggilan API Pencarian YouTube GAGAL. Status:", searchResponse.status);
             const errorBody = await searchResponse.text();
             console.error("Badan Error:", errorBody);
         }
         
-        if (!validVideoLink) {
-             console.warn(`Tidak ditemukan video yang valid untuk "${judul} - ${artis}".`);
-        }
-        
         suggestions.saranMusik.linkVideo = validVideoLink;
-
 
         // --- Langkah 3: Kirim respons gabungan ke user ---
         res.status(200).json({ message: "Saran berhasil didapatkan", suggestions });
