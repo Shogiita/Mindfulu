@@ -6,14 +6,14 @@
     <data>
         <variable
             name="viewModel"
-            type="com.example.mindfulu.LoginRegisterViewModel" />
+            type="com.example.mindfulu.viewmodel.LoginRegisterViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/background"
-        tools:context=".LoginFragment"
+        tools:context=".ui.LoginFragment"
         tools:layout_editor_absoluteX="-4dp"
         tools:layout_editor_absoluteY="52dp">
 

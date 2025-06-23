@@ -1,4 +1,4 @@
-package com.example.mindfulu
+package com.example.mindfulu.ui
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.fragment.NavHostFragment
+import com.example.mindfulu.R
 import com.example.mindfulu.databinding.ActivityHomeBinding
 
 class HomeActivity : AppCompatActivity() {

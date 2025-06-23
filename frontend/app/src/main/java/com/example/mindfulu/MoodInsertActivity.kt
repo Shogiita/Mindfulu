@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.mindfulu.ui.HomeActivity
 
 class MoodInsertActivity : AppCompatActivity() {
     var MoodSelected: String = ""
@@ -47,12 +48,10 @@ class MoodInsertActivity : AppCompatActivity() {
 
         BadEmoji.setOnClickListener {
             MoodSelected = "Bad"
-
         }
 
         HappyEmoji.setOnClickListener {
             MoodSelected = "Happy"
-
         }
 
         LovelyEmoji.setOnClickListener {

@@ -7,12 +7,12 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.mindfulu.HomeFragment"
+        android:name="com.example.mindfulu.ui.HomeFragment"
         android:label="fragment_home"
         tools:layout="@layout/fragment_home" />
     <fragment
         android:id="@+id/historyFragment"
-        android:name="com.example.mindfulu.HistoryFragment"
+        android:name="com.example.mindfulu.ui.HistoryFragment"
         android:label="fragment_history"
         tools:layout="@layout/fragment_history" />
     <fragment
@@ -22,7 +22,7 @@
         tools:layout="@layout/fragment_overview" />
     <fragment
         android:id="@+id/settingFragment"
-        android:name="com.example.mindfulu.SettingFragment"
+        android:name="com.example.mindfulu.ui.SettingFragment"
         android:label="fragment_setting"
         tools:layout="@layout/fragment_setting" />
     <action

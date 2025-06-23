@@ -84,6 +84,7 @@ dependencies {
     // Room
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.firebase.firestore.ktx)
     kapt(libs.androidx.room.compiler)
 
     // Networking

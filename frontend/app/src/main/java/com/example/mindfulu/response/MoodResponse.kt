@@ -1,4 +1,6 @@
-package com.example.mindfulu
+package com.example.mindfulu.response
+
+import com.example.mindfulu.MoodData
 
 data class MoodResponse(
     val message: String,

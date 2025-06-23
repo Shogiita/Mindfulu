@@ -4,6 +4,7 @@ package com.example.mindfulu
 import com.example.mindfulu.data.AuthResponse
 import com.example.mindfulu.data.LoginRequest
 import com.example.mindfulu.data.RegisterRequest
+import com.example.mindfulu.response.MoodResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -16,8 +17,6 @@ interface WebService {
 
     @GET("mood")
     suspend fun getMood(): List<MoodData>
-
-    // --- TAMBAHKAN DEFINISI ENDPOINT DI BAWAH INI ---
 
     // Endpoint untuk Register
     @POST("register")

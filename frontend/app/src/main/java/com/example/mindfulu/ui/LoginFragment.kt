@@ -1,4 +1,4 @@
-package com.example.mindfulu
+package com.example.mindfulu.ui
 
 import android.content.Intent
 import android.os.Bundle
@@ -13,6 +13,9 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import com.example.mindfulu.viewmodel.LoginRegisterViewModel
+import com.example.mindfulu.MoodInsertActivity
+import com.example.mindfulu.R
 import com.example.mindfulu.databinding.FragmentLoginBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -21,7 +24,12 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore // Import Firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await // Import for await()
 
 class LoginFragment : Fragment() {
 
@@ -32,6 +40,7 @@ class LoginFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
+    private val db = FirebaseFirestore.getInstance()
 
     private val TAG = "LoginFragment"
 
@@ -70,7 +79,6 @@ class LoginFragment : Fragment() {
             }
         }
 
-        // ViewModel Observers
         vm.loginResult.observe(viewLifecycleOwner) {
             Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
             navigateToHome()
@@ -119,10 +127,53 @@ class LoginFragment : Fragment() {
                 if (task.isSuccessful) {
                     Log.d(TAG, "signInWithCredential:success")
                     Toast.makeText(context, "Google Sign In Success", Toast.LENGTH_SHORT).show()
-                    navigateToHome()
+
+                    // --- BARU DITAMBAHKAN: Simpan data user ke Firestore setelah login Google ---
+                    val firebaseUser = auth.currentUser
+                    firebaseUser?.let { user ->
+                        CoroutineScope(Dispatchers.IO).launch { // Gunakan coroutine untuk operasi Firestore
+                            try {
+                                val userId = user.uid
+                                val userEmail = user.email ?: ""
+                                val userName = user.displayName ?: "" // Nama dari Google
+                                val userUsername = userEmail.substringBefore("@") // Contoh username dari email
+
+                                val userDocRef = db.collection("users").document(userId)
+
+                                // Periksa apakah dokumen user sudah ada
+                                val documentSnapshot = userDocRef.get().await()
+                                if (!documentSnapshot.exists()) {
+                                    // Jika belum ada, buat dokumen baru
+                                    val userData = hashMapOf(
+                                        "email" to userEmail,
+                                        "name" to userName,
+                                        "username" to userUsername,
+                                        // Password TIDAK disimpan di sini untuk Google Sign-In
+                                    )
+                                    userDocRef.set(userData).await()
+                                    Log.d(TAG, "User data saved to Firestore: $userId")
+                                } else {
+                                    Log.d(TAG, "User data already exists in Firestore: $userId")
+                                }
+                                // Setelah selesai menyimpan/memverifikasi data di Firestore, baru navigasi
+                                navigateToHome()
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error saving Google user data to Firestore: ${e.message}", e)
+                                // Tampilkan pesan error ke user jika perlu
+                                with(Dispatchers.Main) {
+                                    Toast.makeText(context, "Failed to store user data: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    } ?: run {
+                        Log.e(TAG, "Firebase User is null after Google Sign-In success.")
+                        Toast.makeText(context, "Authentication failed: User data not found.", Toast.LENGTH_SHORT).show()
+                    }
+                    // ---------------------------------------------------------------------
+
                 } else {
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
-                    Toast.makeText(context, "Authentication Failed", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Authentication Failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }
     }
