@@ -4,7 +4,6 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
-import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -15,7 +14,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import com.example.mindfulu.R
 import com.example.mindfulu.databinding.ActivityMoodInsertBinding
-import com.example.mindfulu.data.SuggestionRequest
 import com.example.mindfulu.viewmodel.MoodViewModel
 import com.example.mindfulu.viewmodel.SuggestionViewModel
 import com.example.mindfulu.data.SuggestionResponse
@@ -64,19 +62,25 @@ class MoodInsertActivity : AppCompatActivity() {
 
         moodViewModel.error.observe(this) { error ->
             Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
+            // Hide loading indicator on error
+            binding.progressBar.isVisible = false
         }
 
         suggestionViewModel.error.observe(this) { error ->
             Toast.makeText(this, "Suggestion Error: $error", Toast.LENGTH_LONG).show()
+            // Hide loading indicator on error
+            binding.progressBar.isVisible = false
             navigateToHome()
         }
 
         moodViewModel.isLoading.observe(this) { isLoading ->
             binding.progressBar.isVisible = isLoading
+            binding.SubmitButton.isEnabled = !isLoading
         }
 
         suggestionViewModel.isLoading.observe(this) { isLoading ->
             binding.progressBar.isVisible = isLoading
+            binding.SubmitButton.isEnabled = !isLoading
         }
     }
 
@@ -117,11 +121,13 @@ class MoodInsertActivity : AppCompatActivity() {
     private fun selectMood(mood: String, selectedButton: ImageButton) {
         moodSelected = mood
 
+        // Reset all button backgrounds
         binding.SadEmoji.backgroundTintList = null
         binding.BadEmoji.backgroundTintList = null
         binding.HappyEmoji.backgroundTintList = null
         binding.LovelyEmoji.backgroundTintList = null
 
+        // Highlight selected button
         selectedButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#00FF00"))
 
         Toast.makeText(this, "$mood selected", Toast.LENGTH_SHORT).show()

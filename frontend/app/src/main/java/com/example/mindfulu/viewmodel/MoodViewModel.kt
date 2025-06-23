@@ -1,5 +1,6 @@
 package com.example.mindfulu.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -27,32 +28,64 @@ class MoodViewModel : ViewModel() {
     fun postMood(mood: String, reason: String) {
         _isLoading.value = true
         viewModelScope.launch {
-            val result = moodRepository.postMood(mood, reason)
-            result.fold(
-                onSuccess = { moodResponse ->
-                    _moodResult.postValue(moodResponse)
-                },
-                onFailure = { exception ->
-                    _error.postValue(exception.message ?: "Failed to post mood")
-                }
-            )
-            _isLoading.postValue(false)
+            try {
+                val result = moodRepository.postMood(mood, reason)
+                result.fold(
+                    onSuccess = { moodResponse ->
+                        _moodResult.postValue(moodResponse)
+                        Log.d("MoodViewModel", "Mood posted successfully: ${moodResponse.message}")
+                    },
+                    onFailure = { exception ->
+                        val errorMessage = when {
+                            exception.message?.contains("ConnectException") == true ->
+                                "Cannot connect to server. Please check your internet connection and server status."
+                            exception.message?.contains("SocketTimeoutException") == true ->
+                                "Connection timeout. Please try again."
+                            exception.message?.contains("UnknownHostException") == true ->
+                                "Cannot reach server. Please check server address."
+                            else -> exception.message ?: "Failed to post mood"
+                        }
+                        _error.postValue(errorMessage)
+                        Log.e("MoodViewModel", "Error posting mood: ${exception.message}", exception)
+                    }
+                )
+            } catch (e: Exception) {
+                _error.postValue("Unexpected error: ${e.message}")
+                Log.e("MoodViewModel", "Unexpected error: ${e.message}", e)
+            } finally {
+                _isLoading.postValue(false)
+            }
         }
     }
 
     fun getAllMoods() {
         _isLoading.value = true
         viewModelScope.launch {
-            val result = moodRepository.getAllMoods()
-            result.fold(
-                onSuccess = { moods ->
-                    _moodHistory.postValue(moods)
-                },
-                onFailure = { exception ->
-                    _error.postValue(exception.message ?: "Failed to get mood history")
-                }
-            )
-            _isLoading.postValue(false)
+            try {
+                val result = moodRepository.getAllMoods()
+                result.fold(
+                    onSuccess = { moods ->
+                        _moodHistory.postValue(moods)
+                        Log.d("MoodViewModel", "Fetched ${moods.size} moods")
+                    },
+                    onFailure = { exception ->
+                        val errorMessage = when {
+                            exception.message?.contains("ConnectException") == true ->
+                                "Cannot connect to server. Please check your internet connection and server status."
+                            exception.message?.contains("SocketTimeoutException") == true ->
+                                "Connection timeout. Please try again."
+                            else -> exception.message ?: "Failed to get mood history"
+                        }
+                        _error.postValue(errorMessage)
+                        Log.e("MoodViewModel", "Error fetching moods: ${exception.message}", exception)
+                    }
+                )
+            } catch (e: Exception) {
+                _error.postValue("Unexpected error: ${e.message}")
+                Log.e("MoodViewModel", "Unexpected error: ${e.message}", e)
+            } finally {
+                _isLoading.postValue(false)
+            }
         }
     }
 }

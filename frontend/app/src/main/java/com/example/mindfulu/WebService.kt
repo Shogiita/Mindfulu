@@ -12,12 +12,11 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 
 interface WebService {
-    // Existing endpoints
     @POST("mood")
-    suspend fun postMood(@Body request: MoodRequest): MoodResponse
+    suspend fun postMood(@Body request: MoodRequest): Response<MoodResponse>
 
     @GET("mood")
-    suspend fun getMood(): List<MoodData>
+    suspend fun getMood(): Response<List<MoodData>>
 
     @POST("register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
