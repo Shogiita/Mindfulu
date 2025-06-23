@@ -105,4 +105,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    //Image Profile
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
 }
