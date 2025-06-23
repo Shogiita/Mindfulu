@@ -1,13 +1,74 @@
+// Mengimpor library yang diperlukan
 const express = require("express");
 const { Sequelize, Model, DataTypes } = require("sequelize");
+// [FIX] Mengimpor 'node-fetch' yang diperlukan untuk panggilan API
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const app = express();
 const port = 3000;
 
+// Middleware untuk membaca body dari request dalam format JSON
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// --- KONEKSI DATABASE (SEQUELIZE) ---
+// Pastikan detail ini sesuai dengan konfigurasi database Anda
+const sequelize = new Sequelize(
+    "mdpceria", // Nama Database
+    "root",      // User
+    "",          // Password
+    {
+        host: "127.0.0.1", 
+        port: 3306,
+        dialect: "mysql",
+        logging: console.log, // Aktifkan logging untuk melihat query SQL di konsol
+    }
+);
+
+// --- DEFINISI MODEL ---
+class Moods extends Model {}
+Moods.init({
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    mood: { type: DataTypes.STRING, allowNull: false },
+    date: { type: DataTypes.DATE, allowNull: false },
+    reason: { type: DataTypes.STRING, allowNull: false }
+}, {
+    sequelize,
+    modelName: 'Moods',
+    tableName: 'moods',
+    timestamps: false
+});
+
+
+// --- ENDPOINTS (RUTE) ---
+
+// Endpoint untuk menangani POST request ke /mood
+app.post("/mood", async (req, res) => {
+    try {
+        const { mood, reason } = req.body;
+        if (!mood || !reason) {
+            return res.status(400).json({ message: "Mood dan alasan wajib diisi" });
+        }
+        const today = new Date();
+        const date = today.toISOString().split('T')[0];
+        const newMoodRecord = await Moods.create({ mood, date, reason });
+
+        const responseMood = {
+            id: newMoodRecord.id,
+            mood: newMoodRecord.mood,
+            reason: newMoodRecord.reason,
+            date: new Date(newMoodRecord.date).getTime()
+        };
+
+        res.status(201).json({ message: "Mood berhasil dicatat", mood: responseMood });
+    } catch (error) {
+        console.error("Mood Error:", error);
+        res.status(500).json({ message: "Terjadi kesalahan pada server saat menyimpan mood" });
+    }
+});
+
+
+// [FIX] Menggabungkan kedua endpoint /suggestions menjadi satu yang berfungsi
 app.post("/suggestions", async (req, res) => {
     try {
         const { mood, reason } = req.body;
@@ -35,11 +96,11 @@ app.post("/suggestions", async (req, res) => {
                 "alasan": "Penjelasan singkat mengapa lagu ini cocok dengan mood tersebut."
               },
               "saranKegiatan": [
-                {"kegiatan": "...", "deskripsi": "..."},
-                {"kegiatan": "...", "deskripsi": "..."},
-                {"kegiatan": "...", "deskripsi": "..."},
-                {"kegiatan": "...", "deskripsi": "..."},
-                {"kegiatan": "...", "deskripsi": "..."}
+                {"kegiatan": "Mendengarkan podcast", "deskripsi": "Cari podcast komedi untuk mengubah suasana hati."},
+                {"kegiatan": "Jalan santai", "deskripsi": "Berjalan di taman selama 15 menit untuk menjernihkan pikiran."},
+                {"kegiatan": "Menulis jurnal", "deskripsi": "Tuliskan apa yang kamu rasakan tanpa dihakimi."},
+                {"kegiatan": "Menonton film", "deskripsi": "Pilih genre film favoritmu untuk ditonton."},
+                {"kegiatan": "Meditasi singkat", "deskripsi": "Lakukan meditasi pernapasan selama 5 menit."}
               ]
             }
             Catatan Penting: Hindari saran yang terlalu umum. Jadilah spesifik dan berikan ide-ide yang segar.
@@ -66,7 +127,8 @@ app.post("/suggestions", async (req, res) => {
 
         let suggestions;
         try {
-            suggestions = JSON.parse(suggestionsText);
+            const jsonString = suggestionsText.substring(suggestionsText.indexOf('{'), suggestionsText.lastIndexOf('}') + 1);
+            suggestions = JSON.parse(jsonString);
         } catch (parseError) {
             console.error("Gagal mem-parse JSON dari Gemini. Teks Mentah:", suggestionsText);
             throw new Error("Respons dari AI tidak dapat diproses (format JSON tidak valid).");
@@ -105,8 +167,16 @@ app.post("/suggestions", async (req, res) => {
     }
 });
 
+// [FIX] Definisi fungsi startServer yang hilang, sekarang ditambahkan
 const startServer = async () => {
-    app.listen(port, () => console.log(`Server berjalan di http://localhost:${port}`));
+    try {
+        await sequelize.sync({ force: false });
+        console.log("Koneksi database berhasil dan model telah disinkronkan.");
+        app.listen(port, () => console.log(`Server berjalan di http://localhost:${port}`));
+    } catch (error) {
+        console.error("Tidak dapat terhubung ke database:", error);
+    }
 };
 
+// [FIX] Memanggil fungsi startServer di akhir
 startServer();
