@@ -1,8 +1,20 @@
 // Mengimpor library yang diperlukan
 const express = require("express");
 const { Sequelize, Model, DataTypes } = require("sequelize");
-// [FIX] Mengimpor 'node-fetch' yang diperlukan untuk panggilan API
+// Mengimpor Firebase Admin SDK untuk berinteraksi dengan Firestore
+const admin = require('firebase-admin');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
+// --- INISIALISASI FIREBASE ADMIN ---
+// Ganti dengan path ke file kunci akun layanan Anda yang diunduh dari Firebase
+const serviceAccount = require("./serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+// Mendapatkan referensi ke database Firestore
+const db = admin.firestore();
 
 const app = express();
 const port = 3000;
@@ -12,9 +24,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- KONEKSI DATABASE (SEQUELIZE) ---
-// Pastikan detail ini sesuai dengan konfigurasi database Anda
+// Kode ini tetap ada jika Anda masih menggunakannya untuk endpoint lain.
 const sequelize = new Sequelize(
-    "mdpceria", // Nama Database
+    "mdpceria", // Nama Database dari kode terbaru Anda
     "root",      // User
     "",          // Password
     {
@@ -25,7 +37,7 @@ const sequelize = new Sequelize(
     }
 );
 
-// --- DEFINISI MODEL ---
+// --- DEFINISI MODEL (SEQUELIZE) ---
 class Moods extends Model {}
 Moods.init({
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -42,7 +54,7 @@ Moods.init({
 
 // --- ENDPOINTS (RUTE) ---
 
-// Endpoint untuk menangani POST request ke /mood
+// Endpoint untuk menangani POST request ke /mood menggunakan Firestore
 app.post("/mood", async (req, res) => {
     try {
         const { mood, reason } = req.body;
@@ -50,25 +62,59 @@ app.post("/mood", async (req, res) => {
             return res.status(400).json({ message: "Mood dan alasan wajib diisi" });
         }
         const today = new Date();
-        const date = today.toISOString().split('T')[0];
-        const newMoodRecord = await Moods.create({ mood, date, reason });
-
-        const responseMood = {
-            id: newMoodRecord.id,
-            mood: newMoodRecord.mood,
-            reason: newMoodRecord.reason,
-            date: new Date(newMoodRecord.date).getTime()
+        const moodData = {
+            mood: mood,
+            reason: reason,
+            date: admin.firestore.Timestamp.fromDate(today) 
         };
-
-        res.status(201).json({ message: "Mood berhasil dicatat", mood: responseMood });
+        const docRef = await db.collection('moods').add(moodData);
+        const responseMood = {
+            id: docRef.id,
+            mood: moodData.mood,
+            reason: moodData.reason,
+            date: moodData.date.toMillis()
+        };
+        res.status(201).json({ message: "Mood berhasil dicatat di Firestore", mood: responseMood });
     } catch (error) {
-        console.error("Mood Error:", error);
-        res.status(500).json({ message: "Terjadi kesalahan pada server saat menyimpan mood" });
+        console.error("Firestore Mood Error:", error);
+        res.status(500).json({ message: "Terjadi kesalahan pada server saat menyimpan mood ke Firestore" });
+    }
+});
+
+// [BARU] Endpoint untuk mendapatkan semua riwayat mood dari Firestore
+app.get("/mood", async (req, res) => {
+    try {
+        const moodsRef = db.collection('moods');
+        // Mengambil semua dokumen dan mengurutkannya berdasarkan tanggal, dari yang terbaru
+        const snapshot = await moodsRef.orderBy('date', 'desc').get();
+
+        if (snapshot.empty) {
+            // Jika tidak ada data, kirim array kosong agar klien tidak error
+            return res.status(200).json([]);
+        }
+
+        // Memetakan setiap dokumen ke format yang diharapkan oleh klien Android (MoodData)
+        const moodHistory = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                mood: data.mood,
+                reason: data.reason,
+                // Mengonversi Firestore Timestamp ke milidetik (Long)
+                date: data.date.toMillis() 
+            };
+        });
+
+        res.status(200).json(moodHistory);
+
+    } catch (error) {
+        console.error("Get Mood History Error:", error);
+        res.status(500).json({ message: "Terjadi kesalahan pada server saat mengambil riwayat mood" });
     }
 });
 
 
-// [FIX] Menggabungkan kedua endpoint /suggestions menjadi satu yang berfungsi
+// Endpoint /suggestions tetap tidak berubah
 app.post("/suggestions", async (req, res) => {
     try {
         const { mood, reason } = req.body;
@@ -167,16 +213,17 @@ app.post("/suggestions", async (req, res) => {
     }
 });
 
-// [FIX] Definisi fungsi startServer yang hilang, sekarang ditambahkan
+
 const startServer = async () => {
     try {
         await sequelize.sync({ force: false });
-        console.log("Koneksi database berhasil dan model telah disinkronkan.");
-        app.listen(port, () => console.log(`Server berjalan di http://localhost:${port}`));
+        console.log("Koneksi database MySQL berhasil dan model telah disinkronkan.");
+        
+        app.listen(port, () => console.log(`Server berjalan di http://localhost:${port}, terhubung ke Firestore.`));
     } catch (error) {
-        console.error("Tidak dapat terhubung ke database:", error);
+        console.error("Tidak dapat terhubung ke database MySQL:", error);
+        app.listen(port, () => console.log(`Server berjalan di http://localhost:${port}, koneksi MySQL gagal tetapi Firestore siap.`));
     }
 };
 
-// [FIX] Memanggil fungsi startServer di akhir
 startServer();

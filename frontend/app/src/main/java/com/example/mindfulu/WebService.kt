@@ -16,7 +16,7 @@ interface WebService {
     suspend fun postMood(@Body request: MoodRequest): Response<MoodResponse>
 
     @GET("mood")
-    suspend fun getMood(): Response<List<MoodData>>
+    suspend fun getMoodHistory(): Response<List<MoodData>>
 
     @POST("register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
