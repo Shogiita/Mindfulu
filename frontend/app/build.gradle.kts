@@ -109,4 +109,24 @@ dependencies {
     //Image Profile
     implementation ("com.github.bumptech.glide:glide:4.16.0")
     implementation("io.coil-kt:coil:2.5.0")
+
+    // Testing
+    testImplementation(libs.junit) // JUnit 4
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+
+    // Mocking
+    // For Mockito-Kotlin, which provides Kotlin-friendly APIs for Mockito
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1") // Or the latest version
+    testImplementation("org.mockito:mockito-core:5.12.0") // Or the latest version
+    // Required for mocking final classes/methods like some Firebase ones.
+    // Also, create a file in `src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker`
+    // with content `mock-maker-inline` to enable this.
+    testImplementation("org.mockito:mockito-inline:5.12.0")
+
+    // Coroutine testing
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1") // Or the latest version
+
+    // LiveData testing
+    testImplementation("androidx.arch.core:core-testing:2.2.0") // Or the latest version
 }
