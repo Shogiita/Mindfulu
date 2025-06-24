@@ -1,14 +1,26 @@
 // Mengimpor library yang diperlukan
 const express = require("express");
 const { Sequelize, Model, DataTypes } = require("sequelize");
-// Mengimpor Firebase Admin SDK untuk berinteraksi dengan Firestore
 const admin = require('firebase-admin');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-// --- INISIALISASI FIREBASE ADMIN ---
-// Pastikan file serviceAccountKey.json ada di folder backend.
-const serviceAccount = require("./serviceAccountKey.json");
+// --- MEMUAT VARIABEL LINGKUNGAN ---
+// Memastikan library dotenv diinstal (npm install dotenv)
+require('dotenv').config();
 
+// --- INISIALISASI FIREBASE ADMIN ---
+// Membaca kredensial dari variabel lingkungan (Base64)
+const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+if (!serviceAccountBase64) {
+    console.error("FIREBASE_SERVICE_ACCOUNT_BASE64 tidak ditemukan di file .env");
+    process.exit(1);
+}
+
+// Mendekode string Base64 kembali ke format JSON
+const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString('ascii');
+const serviceAccount = JSON.parse(serviceAccountJson);
+
+// Inisialisasi Firebase Admin SDK dengan service account yang sudah di-parse
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
@@ -17,20 +29,22 @@ admin.initializeApp({
 const db = admin.firestore();
 
 const app = express();
-const port = 3000;
+// Menggunakan port dari .env atau default 3000
+const port = process.env.PORT || 8080;
 
 // Middleware untuk membaca body dari request dalam format JSON
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- KONEKSI DATABASE (SEQUELIZE) ---
+// Menggunakan konfigurasi database dari file .env
 const sequelize = new Sequelize(
-    "mdpceria", // Nama Database
-    "root",      // User
-    "",          // Password
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASS,
     {
-        host: "localhost",
-        port: 3306,
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
         dialect: "mysql",
         logging: console.log,
     }
@@ -117,7 +131,7 @@ app.get("/mood", async (req, res) => {
 });
 
 
-// [DIUBAH] Endpoint /suggestions sekarang membangun respons secara manual untuk menjamin konsistensi
+// Endpoint /suggestions yang telah diperbarui untuk membaca API Key dari .env
 app.post("/suggestions", async (req, res) => {
     try {
         const { mood, reason } = req.body;
@@ -125,11 +139,12 @@ app.post("/suggestions", async (req, res) => {
             return res.status(400).json({ message: "Mood dan alasan wajib diisi" });
         }
 
-        const GEMINI_API_KEY = "AIzaSyA6erWToNDb8G24MJlg9MrEB2d5SNzrvuQ";
-        const YOUTUBE_API_KEY = "AIzaSyA4l8O7-EFJ41iqpV1hdq6VRvxo_WrPwjw";
+        // Mengambil API Key dari environment variables
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+        const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
         if (!GEMINI_API_KEY || !YOUTUBE_API_KEY) {
-            return res.status(500).json({ message: "API Key belum dikonfigurasi." });
+            return res.status(500).json({ message: "API Key belum dikonfigurasi di file .env" });
         }
 
         const timestamp = new Date().toISOString();
@@ -167,7 +182,7 @@ app.post("/suggestions", async (req, res) => {
             body: JSON.stringify(geminiPayload)
         });
 
-        if (!geminiResponse.ok) throw new Error("Gagal mendapatkan saran dari Gemini API.");
+        if (!geminiResponse.ok) throw new Error(`Gagal mendapatkan saran dari Gemini API. Status: ${geminiResponse.status}`);
 
         const geminiResult = await geminiResponse.json();
         const suggestionsText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -183,7 +198,6 @@ app.post("/suggestions", async (req, res) => {
             throw new Error("Respons dari AI tidak dapat diproses (format JSON tidak valid).");
         }
         
-        // [BARU] Validasi struktur dari Gemini dan ekstrak datanya
         if (!geminiSuggestions || !geminiSuggestions.saranMusik || !geminiSuggestions.saranKegiatan) {
             throw new Error("Struktur JSON dari Gemini API tidak sesuai harapan.");
         }
@@ -191,7 +205,6 @@ app.post("/suggestions", async (req, res) => {
         const { judul, artis, alasan } = geminiSuggestions.saranMusik;
         const kegiatan = geminiSuggestions.saranKegiatan;
 
-        // Mencari video YouTube
         let validVideoLink = null;
         const searchQuery = encodeURIComponent(`${judul} ${artis}`);
         const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${YOUTUBE_API_KEY}&maxResults=1&type=video&videoEmbeddable=true&order=relevance`;
@@ -200,12 +213,10 @@ app.post("/suggestions", async (req, res) => {
             const searchResult = await searchResponse.json();
             if (searchResult.items && searchResult.items.length > 0) {
                 const videoId = searchResult.items[0].id.videoId;
-                // [PERBAIKAN] Gunakan format URL YouTube yang benar
-                validVideoLink = `https://www.youtube.com/embed/${videoId}`;;
+                validVideoLink = `https://www.youtube.com/embed/${videoId}`;
             }
         }
 
-        // [BARU] Membangun objek respons final secara manual untuk memastikan strukturnya benar
         const finalSuggestions = {
             saranMusik: {
                 judul: judul || "Tidak ada judul",
@@ -227,12 +238,16 @@ app.post("/suggestions", async (req, res) => {
 
 const startServer = async () => {
     try {
-        await sequelize.sync({ force: false });
-        console.log("Koneksi database MySQL berhasil dan model telah disinkronkan.");
+        await sequelize.authenticate(); // Menggunakan authenticate untuk tes koneksi
+        console.log("Koneksi ke database MySQL berhasil.");
         
-        app.listen(port, () => console.log(`Server berjalan di http://localhost:${port}, terhubung ke Firestore.`));
+        await sequelize.sync({ force: false });
+        console.log("Model telah disinkronkan dengan database.");
+        
+        app.listen(port, () => console.log(`Server berjalan di http://localhost:${port}, terhubung ke Firestore dan MySQL.`));
     } catch (error) {
         console.error("Tidak dapat terhubung ke database MySQL:", error);
+        // Tetap jalankan server jika hanya koneksi MySQL yang gagal
         app.listen(port, () => console.log(`Server berjalan di http://localhost:${port}, koneksi MySQL gagal tetapi Firestore siap.`));
     }
 };
