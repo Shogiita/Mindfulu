@@ -109,4 +109,31 @@ dependencies {
     //Image Profile
     implementation ("com.github.bumptech.glide:glide:4.16.0")
     implementation("io.coil-kt:coil:2.5.0")
+
+    // For unit tests
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0") // Or the latest version
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1") // Or the latest version
+
+    // Testing
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+
+    // For mocking with Mockito-Kotlin
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1") // Use a recent stable version
+
+    // For LiveData testing (InstantTaskExecutorRule)
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+
+    // For Coroutines testing
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1") // Ensure this matches your coroutines version
+
+    testImplementation("org.mockito:mockito-core:3.12.4") // Java 8 compatible Mockito Core
+    testImplementation("org.mockito.kotlin:mockito-kotlin:3.2.0") // Java 8 compatible Mockito-Kotlin
+
+    // For LiveData testing (InstantTaskExecutorRule)
+
+    // For Coroutines testing
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 }
