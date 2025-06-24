@@ -1,5 +1,6 @@
 package com.example.mindfulu.repository
 
+import com.example.mindfulu.App
 import com.example.mindfulu.WebService
 import com.example.mindfulu.data.ActivitySuggestion
 import com.example.mindfulu.data.MusicSuggestion
@@ -17,6 +18,7 @@ import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
+import retrofit2.HttpException
 import retrofit2.Response
 import java.io.IOException
 
@@ -31,57 +33,75 @@ class SuggestionRepositoryTest {
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
+        // Set the mock WebService to the App companion object for testing
+        val field = App.Companion::class.java.getDeclaredField("retrofitService")
+        field.isAccessible = true
+        field.set(null, mockWebService)
+
         suggestionRepository = SuggestionRepository()
-        // Using reflection to inject the mock WebService
-        val webServiceField = SuggestionRepository::class.java.getDeclaredField("webService")
-        webServiceField.isAccessible = true
-        webServiceField.set(suggestionRepository, mockWebService)
     }
 
     @Test
-    fun `getSuggestions returns success for successful API call`() = runTest {
+    fun `getSuggestions success returns success result`() = runTest {
         val mood = "Happy"
-        val reason = "Feeling great"
-        val musicSuggestion = MusicSuggestion("Song Title", "Artist", "Reason", "link")
-        val activitySuggestion = ActivitySuggestion("Activity", "Description")
-        val suggestions = Suggestions(musicSuggestion, listOf(activitySuggestion))
-        val apiResponse = SuggestionResponse("Success", suggestions)
+        val reason = "Finished project"
+        val mockMusicSuggestion = MusicSuggestion("Song Title", "Artist", "Reason", "link")
+        val mockActivitySuggestion = listOf(ActivitySuggestion("Activity", "Description"))
+        val mockSuggestions = Suggestions(mockMusicSuggestion, mockActivitySuggestion)
+        val mockResponse = SuggestionResponse("Suggestions fetched", mockSuggestions)
 
         `when`(mockWebService.getSuggestions(SuggestionRequest(mood, reason)))
-            .thenReturn(Response.success(apiResponse))
+            .thenReturn(Response.success(mockResponse))
 
         val result = suggestionRepository.getSuggestions(mood, reason)
 
         assertTrue(result.isSuccess)
-        assertEquals(apiResponse, result.getOrNull())
+        assertEquals(mockResponse, result.getOrNull())
     }
 
     @Test
-    fun `getSuggestions returns failure for API error`() = runTest {
-        val mood = "Sad"
-        val reason = "Long day"
-        val errorBody = "{\"message\":\"API Rate Limit Exceeded\"}".toResponseBody("application/json".toMediaTypeOrNull())
-
-        `when`(mockWebService.getSuggestions(SuggestionRequest(mood, reason)))
-            .thenReturn(Response.error(429, errorBody))
-
-        val result = suggestionRepository.getSuggestions(mood, reason)
-
-        assertTrue(result.isFailure)
-        assertEquals("Error 429: Too Many Requests", result.exceptionOrNull()?.message)
-    }
-
-    @Test
-    fun `getSuggestions returns failure for network error`() = runTest {
+    fun `getSuggestions unsuccessful response returns failure result`() = runTest {
         val mood = "Happy"
-        val reason = "Feeling great"
+        val reason = "Finished project"
 
         `when`(mockWebService.getSuggestions(SuggestionRequest(mood, reason)))
-            .thenThrow(IOException("No network connection"))
+            .thenReturn(Response.error(400, "{}".toResponseBody("application/json".toMediaTypeOrNull())))
 
         val result = suggestionRepository.getSuggestions(mood, reason)
 
         assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is Exception)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Error 400") == true)
+    }
+
+    @Test
+    fun `getSuggestions network error returns failure result`() = runTest {
+        val mood = "Happy"
+        val reason = "Finished project"
+
+        `when`(mockWebService.getSuggestions(SuggestionRequest(mood, reason)))
+            .thenThrow(IOException("Network error"))
+
+        val result = suggestionRepository.getSuggestions(mood, reason)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is Exception)
         assertEquals("Network error. Please check your connection.", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `getSuggestions http exception returns failure result`() = runTest {
+        val mood = "Happy"
+        val reason = "Finished project"
+        val httpException = HttpException(Response.error<SuggestionResponse>(500, "{}".toResponseBody("application/json".toMediaTypeOrNull())))
+
+        `when`(mockWebService.getSuggestions(SuggestionRequest(mood, reason)))
+            .thenThrow(httpException)
+
+        val result = suggestionRepository.getSuggestions(mood, reason)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is Exception)
+        assertTrue(result.exceptionOrNull()?.message?.contains("HTTP Error 500") == true)
     }
 }

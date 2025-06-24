@@ -1,22 +1,23 @@
 package com.example.mindfulu.viewmodel
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import androidx.lifecycle.Observer
 import com.example.mindfulu.data.AuthResponse
 import com.example.mindfulu.data.UserResponse
 import com.example.mindfulu.repository.AuthRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
-import org.mockito.Mockito.*
+import org.mockito.Mockito.anyString
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
 
 @ExperimentalCoroutinesApi
@@ -25,116 +26,121 @@ class LoginRegisterViewModelTest {
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule() // Ensures LiveData updates immediately
 
-    private val testDispatcher = TestCoroutineDispatcher()
+    private lateinit var loginRegisterViewModel: LoginRegisterViewModel
 
     @Mock
-    private lateinit var authRepository: AuthRepository
-
-    // Observers for LiveData
-    @Mock
-    private lateinit var registerResultObserver: Observer<AuthResponse>
-    @Mock
-    private lateinit var loginResultObserver: Observer<AuthResponse>
-    @Mock
-    private lateinit var errorObserver: Observer<String>
-    @Mock
-    private lateinit var isLoadingObserver: Observer<Boolean>
-
-    private lateinit var viewModel: LoginRegisterViewModel
+    private lateinit var mockAuthRepository: AuthRepository
 
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
-        Dispatchers.setMain(testDispatcher) // Set Main dispatcher for coroutines
+        loginRegisterViewModel = LoginRegisterViewModel()
 
-        viewModel = LoginRegisterViewModel()
-        // Manually set the mocked repository if not using constructor injection
-        // This requires reflection or a setter in LoginRegisterViewModel, or direct instantiation in test
-        // For this example, let's assume we can set it. A better practice is dependency injection.
-        val authRepoField = LoginRegisterViewModel::class.java.getDeclaredField("authRepository")
-        authRepoField.isAccessible = true
-        authRepoField.set(viewModel, authRepository)
-
-        // Observe LiveData
-        viewModel.registerResult.observeForever(registerResultObserver)
-        viewModel.loginResult.observeForever(loginResultObserver)
-        viewModel.error.observeForever(errorObserver)
-        viewModel.isLoading.observeForever(isLoadingObserver)
+        // Manually inject the mock repository
+        val field = LoginRegisterViewModel::class.java.getDeclaredField("authRepository")
+        field.isAccessible = true
+        field.set(loginRegisterViewModel, mockAuthRepository)
     }
 
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain() // Reset Main dispatcher
-        testDispatcher.cleanupTestCoroutines()
+    // --- Login Tests ---
 
-        // Remove observers to prevent leaks
-        viewModel.registerResult.removeObserver(registerResultObserver)
-        viewModel.loginResult.removeObserver(loginResultObserver)
-        viewModel.error.removeObserver(errorObserver)
-        viewModel.isLoading.removeObserver(isLoadingObserver)
+    @Test
+    fun `login successful updates loginResult and isLoading`() = runTest {
+        val username = "testuser"
+        val password = "hashedpassword"
+        val mockUserResponse = UserResponse(1, username, "Test User", "test@example.com")
+        val mockAuthResponse = AuthResponse("Login successful!", mockUserResponse)
+
+        `when`(mockAuthRepository.loginWithFirestore(username, password))
+            .thenReturn(Result.success(mockAuthResponse))
+
+        // Initial state check
+        assertEquals(false, loginRegisterViewModel.isLoading.value)
+
+        loginRegisterViewModel.login(username, password)
+
+        // Verify loading state changes
+        assertEquals(true, loginRegisterViewModel.isLoading.value) // Loading starts
+        assertEquals(false, loginRegisterViewModel.isLoading.value) // Loading ends
+
+        // Verify loginResult and error are updated correctly
+        assertEquals(mockAuthResponse, loginRegisterViewModel.loginResult.value)
+        assertNull(loginRegisterViewModel.error.value)
+        verify(mockAuthRepository).loginWithFirestore(username, password)
     }
 
     @Test
-    fun `login sets isLoading to true then false and posts success result`() = runTest {
-        val successResponse = AuthResponse("Login successful!", UserResponse(1, "user", "name", "email"))
-        `when`(authRepository.loginWithFirestore("testuser", "hashedpass")).thenReturn(Result.success(successResponse))
-
-        viewModel.login("testuser", "hashedpass")
-
-        // Verify loading states
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
-
-        // Verify success result
-        verify(loginResultObserver).onChanged(successResponse)
-        verifyNoMoreInteractions(errorObserver) // Ensure no error was posted
-    }
-
-    @Test
-    fun `login posts error message on failure`() = runTest {
+    fun `login failure updates error and isLoading`() = runTest {
+        val username = "testuser"
+        val password = "wrongpassword"
         val errorMessage = "Invalid credentials"
-        `when`(authRepository.loginWithFirestore("testuser", "hashedpass")).thenReturn(Result.failure(Exception(errorMessage)))
 
-        viewModel.login("testuser", "hashedpass")
+        `when`(mockAuthRepository.loginWithFirestore(username, password))
+            .thenReturn(Result.failure(Exception(errorMessage)))
 
-        // Verify loading states
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
+        loginRegisterViewModel.login(username, password)
 
-        // Verify error result
-        verify(errorObserver).onChanged(errorMessage)
-        verifyNoMoreInteractions(loginResultObserver) // Ensure no success was posted
+        // Verify loading state changes
+        assertEquals(true, loginRegisterViewModel.isLoading.value) // Loading starts
+        assertEquals(false, loginRegisterViewModel.isLoading.value) // Loading ends
+
+        // Verify error is updated
+        assertEquals(errorMessage, loginRegisterViewModel.error.value)
+        assertNull(loginRegisterViewModel.loginResult.value)
+        verify(mockAuthRepository).loginWithFirestore(username, password)
+    }
+
+    // --- Register Tests ---
+
+    @Test
+    fun `register successful updates registerResult and isLoading`() = runTest {
+        val username = "newuser"
+        val name = "New User"
+        val email = "new@example.com"
+        val password = "hashedpassword"
+        val cpassword = "hashedpassword"
+        val mockUserResponse = UserResponse(0, username, name, email)
+        val mockAuthResponse = AuthResponse("Registration successful!", mockUserResponse)
+
+        `when`(mockAuthRepository.registerWithFirestore(username, name, email, password, cpassword))
+            .thenReturn(Result.success(mockAuthResponse))
+
+        // Initial state check
+        assertEquals(false, loginRegisterViewModel.isLoading.value)
+
+        loginRegisterViewModel.register(username, name, email, password, cpassword)
+
+        // Verify loading state changes
+        assertEquals(true, loginRegisterViewModel.isLoading.value) // Loading starts
+        assertEquals(false, loginRegisterViewModel.isLoading.value) // Loading ends
+
+        // Verify registerResult and error are updated correctly
+        assertEquals(mockAuthResponse, loginRegisterViewModel.registerResult.value)
+        assertNull(loginRegisterViewModel.error.value)
+        verify(mockAuthRepository).registerWithFirestore(username, name, email, password, cpassword)
     }
 
     @Test
-    fun `register sets isLoading to true then false and posts success result`() = runTest {
-        val successResponse = AuthResponse("Registration successful!", UserResponse(0, "newuser", "New User", "new@example.com"))
-        `when`(authRepository.registerWithFirestore("newuser", "New User", "new@example.com", "hashedpass", "hashedpass")).thenReturn(Result.success(successResponse))
+    fun `register failure updates error and isLoading`() = runTest {
+        val username = "existinguser"
+        val name = "Existing User"
+        val email = "existing@example.com"
+        val password = "password"
+        val cpassword = "password"
+        val errorMessage = "Username already exists."
 
-        viewModel.register("newuser", "New User", "new@example.com", "hashedpass", "hashedpass")
+        `when`(mockAuthRepository.registerWithFirestore(username, name, email, password, cpassword))
+            .thenReturn(Result.failure(Exception(errorMessage)))
 
-        // Verify loading states
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
+        loginRegisterViewModel.register(username, name, email, password, cpassword)
 
-        // Verify success result
-        verify(registerResultObserver).onChanged(successResponse)
-        verifyNoMoreInteractions(errorObserver) // Ensure no error was posted
-    }
+        // Verify loading state changes
+        assertEquals(true, loginRegisterViewModel.isLoading.value) // Loading starts
+        assertEquals(false, loginRegisterViewModel.isLoading.value) // Loading ends
 
-    @Test
-    fun `register posts error message on failure`() = runTest {
-        val errorMessage = "Email already exists."
-        `when`(authRepository.registerWithFirestore("newuser", "New User", "new@example.com", "hashedpass", "hashedpass")).thenReturn(Result.failure(Exception(errorMessage)))
-
-        viewModel.register("newuser", "New User", "new@example.com", "hashedpass", "hashedpass")
-
-        // Verify loading states
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
-
-        // Verify error result
-        verify(errorObserver).onChanged(errorMessage)
-        verifyNoMoreInteractions(registerResultObserver)
+        // Verify error is updated
+        assertEquals(errorMessage, loginRegisterViewModel.error.value)
+        assertNull(loginRegisterViewModel.registerResult.value)
+        verify(mockAuthRepository).registerWithFirestore(username, name, email, password, cpassword)
     }
 }

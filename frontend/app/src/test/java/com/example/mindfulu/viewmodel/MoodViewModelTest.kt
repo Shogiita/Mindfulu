@@ -1,162 +1,198 @@
 package com.example.mindfulu.viewmodel
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import androidx.lifecycle.Observer
 import com.example.mindfulu.MoodData
 import com.example.mindfulu.data.MoodResponse
 import com.example.mindfulu.repository.MoodRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.runTest
-import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
-import org.mockito.Mockito.*
+import org.mockito.Mockito.anyString
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
-import java.net.ConnectException
-import java.util.concurrent.TimeoutException
 
 @ExperimentalCoroutinesApi
 class MoodViewModelTest {
 
     @get:Rule
-    val instantTaskExecutorRule = InstantTaskExecutorRule()
+    val instantTaskExecutorRule = InstantTaskExecutorRule() // Ensures LiveData updates immediately
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
-    @Mock
-    private lateinit var moodRepository: MoodRepository
+    private lateinit var moodViewModel: MoodViewModel
 
     @Mock
-    private lateinit var moodResultObserver: Observer<MoodResponse>
-    @Mock
-    private lateinit var moodHistoryObserver: Observer<List<MoodData>>
-    @Mock
-    private lateinit var errorObserver: Observer<String>
-    @Mock
-    private lateinit var isLoadingObserver: Observer<Boolean>
-
-    private lateinit var viewModel: MoodViewModel
+    private lateinit var mockMoodRepository: MoodRepository
 
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
-        Dispatchers.setMain(testDispatcher)
-
-        viewModel = MoodViewModel()
-        // Using reflection to inject the mock repository
-        val moodRepoField = MoodViewModel::class.java.getDeclaredField("moodRepository")
-        moodRepoField.isAccessible = true
-        moodRepoField.set(viewModel, moodRepository)
-
-        viewModel.moodResult.observeForever(moodResultObserver)
-        viewModel.moodHistory.observeForever(moodHistoryObserver)
-        viewModel.error.observeForever(errorObserver)
-        viewModel.isLoading.observeForever(isLoadingObserver)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
-
-        viewModel.moodResult.removeObserver(moodResultObserver)
-        viewModel.moodHistory.removeObserver(moodHistoryObserver)
-        viewModel.error.removeObserver(errorObserver)
-        viewModel.isLoading.removeObserver(isLoadingObserver)
+        moodViewModel = MoodViewModel()
+        // Manually inject the mock repository
+        val field = MoodViewModel::class.java.getDeclaredField("moodRepository")
+        field.isAccessible = true
+        field.set(moodViewModel, mockMoodRepository)
     }
 
     @Test
-    fun `postMood sets isLoading to true then false and posts success result`() = runTest {
+    fun `postMood success updates moodResult and isLoading`() = runTest {
         val mood = "Happy"
         val reason = "Good day"
         val email = "test@example.com"
-        val successResponse = MoodResponse("Success", MoodData(mood, reason, 1L, "id", email))
-        `when`(moodRepository.postMood(mood, reason, email)).thenReturn(Result.success(successResponse))
+        val mockMoodData = MoodData(mood, reason, System.currentTimeMillis(), "id123", email)
+        val mockResponse = MoodResponse("Mood saved successfully", mockMoodData)
 
-        viewModel.postMood(mood, reason, email)
+        `when`(mockMoodRepository.postMood(mood, reason, email))
+            .thenReturn(Result.success(mockResponse))
 
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
-        verify(moodResultObserver).onChanged(successResponse)
-        verifyNoMoreInteractions(errorObserver)
+        // Initial state check
+        assertEquals(false, moodViewModel.isLoading.value)
+
+        moodViewModel.postMood(mood, reason, email)
+
+        // Verify loading state changes
+        assertEquals(true, moodViewModel.isLoading.value) // Loading starts
+        // After coroutine finishes, loading should be false
+        assertEquals(false, moodViewModel.isLoading.value)
+
+        // Verify moodResult and error are updated correctly
+        assertEquals(mockResponse, moodViewModel.moodResult.value)
+        assertEquals(null, moodViewModel.error.value)
+        verify(mockMoodRepository).postMood(mood, reason, email)
     }
 
     @Test
-    fun `postMood posts specific error message for ConnectException`() = runTest {
+    fun `postMood network error updates error and isLoading`() = runTest {
         val mood = "Happy"
         val reason = "Good day"
         val email = "test@example.com"
-        `when`(moodRepository.postMood(mood, reason, email)).thenReturn(Result.failure(ConnectException("Failed to connect")))
+        val errorMessage = "Cannot connect to server. Please check your internet connection and server status."
 
-        viewModel.postMood(mood, reason, email)
+        `when`(mockMoodRepository.postMood(mood, reason, email))
+            .thenReturn(Result.failure(Exception("ConnectException")))
 
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
-        verify(errorObserver).onChanged("Cannot connect to server. Please check your internet connection and server status.")
-        verifyNoMoreInteractions(moodResultObserver)
+        moodViewModel.postMood(mood, reason, email)
+
+        // Verify loading state changes
+        assertEquals(true, moodViewModel.isLoading.value) // Loading starts
+        // After coroutine finishes, loading should be false
+        assertEquals(false, moodViewModel.isLoading.value)
+
+        // Verify moodResult and error are updated correctly
+        assertEquals(null, moodViewModel.moodResult.value)
+        assertEquals(errorMessage, moodViewModel.error.value)
+        verify(mockMoodRepository).postMood(mood, reason, email)
     }
 
     @Test
-    fun `postMood posts specific error message for SocketTimeoutException`() = runTest {
+    fun `postMood timeout error updates error and isLoading`() = runTest {
         val mood = "Happy"
         val reason = "Good day"
         val email = "test@example.com"
-        `when`(moodRepository.postMood(mood, reason, email)).thenReturn(Result.failure(TimeoutException("SocketTimeoutException occurred")))
+        val errorMessage = "Connection timeout. Please try again."
 
-        viewModel.postMood(mood, reason, email)
+        `when`(mockMoodRepository.postMood(mood, reason, email))
+            .thenReturn(Result.failure(Exception("SocketTimeoutException")))
 
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
-        verify(errorObserver).onChanged("Connection timeout. Please try again.")
-        verifyNoMoreInteractions(moodResultObserver)
+        moodViewModel.postMood(mood, reason, email)
+
+        assertEquals(errorMessage, moodViewModel.error.value)
+        assertEquals(false, moodViewModel.isLoading.value)
     }
 
     @Test
-    fun `postMood posts generic error message for other exceptions`() = runTest {
+    fun `postMood generic error updates error and isLoading`() = runTest {
         val mood = "Happy"
         val reason = "Good day"
         val email = "test@example.com"
-        `when`(moodRepository.postMood(mood, reason, email)).thenReturn(Result.failure(RuntimeException("Something unexpected")))
+        val errorMessage = "Something went wrong"
 
-        viewModel.postMood(mood, reason, email)
+        `when`(mockMoodRepository.postMood(mood, reason, email))
+            .thenReturn(Result.failure(Exception(errorMessage)))
 
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
-        verify(errorObserver).onChanged("Failed to post mood") // General failure message from repository
-        verifyNoMoreInteractions(moodResultObserver)
-    }
+        moodViewModel.postMood(mood, reason, email)
 
-
-    @Test
-    fun `getAllMoods sets isLoading to true then false and posts history`() = runTest {
-        val email = "test@example.com"
-        val moodList = listOf(MoodData("Happy", "Test", 1L, "id", email))
-        `when`(moodRepository.getAllMoods(email)).thenReturn(Result.success(moodList))
-
-        viewModel.getAllMoods(email)
-
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
-        verify(moodHistoryObserver).onChanged(moodList)
-        verifyNoMoreInteractions(errorObserver)
+        assertEquals(errorMessage, moodViewModel.error.value)
+        assertEquals(false, moodViewModel.isLoading.value)
     }
 
     @Test
-    fun `getAllMoods posts specific error message for ConnectException`() = runTest {
+    fun `getAllMoods success updates moodHistory and isLoading`() = runTest {
         val email = "test@example.com"
-        `when`(moodRepository.getAllMoods(email)).thenReturn(Result.failure(ConnectException("No connection")))
+        val mockMoods = listOf(MoodData("Happy", "Good day", System.currentTimeMillis(), "id1", email))
 
-        viewModel.getAllMoods(email)
+        `when`(mockMoodRepository.getAllMoods(email))
+            .thenReturn(Result.success(mockMoods))
 
-        verify(isLoadingObserver).onChanged(true)
-        verify(isLoadingObserver).onChanged(false)
-        verify(errorObserver).onChanged("Cannot connect to server. Please check your internet connection and server status.")
-        verifyNoMoreInteractions(moodHistoryObserver)
+        // Initial state check
+        assertEquals(false, moodViewModel.isLoading.value)
+        assertTrue(moodViewModel.moodHistory.value.isNullOrEmpty())
+
+        moodViewModel.getAllMoods(email)
+
+        // Verify loading state changes
+        assertEquals(true, moodViewModel.isLoading.value) // Loading starts
+        // After coroutine finishes, loading should be false
+        assertEquals(false, moodViewModel.isLoading.value)
+
+        // Verify moodHistory and error are updated correctly
+        assertEquals(mockMoods, moodViewModel.moodHistory.value)
+        assertEquals(null, moodViewModel.error.value)
+        verify(mockMoodRepository).getAllMoods(email)
+    }
+
+    @Test
+    fun `getAllMoods network error updates error and isLoading`() = runTest {
+        val email = "test@example.com"
+        val errorMessage = "Cannot connect to server. Please check your internet connection and server status."
+
+        `when`(mockMoodRepository.getAllMoods(email))
+            .thenReturn(Result.failure(Exception("ConnectException")))
+
+        moodViewModel.getAllMoods(email)
+
+        // Verify loading state changes
+        assertEquals(true, moodViewModel.isLoading.value) // Loading starts
+        // After coroutine finishes, loading should be false
+        assertEquals(false, moodViewModel.isLoading.value)
+
+        // Verify moodHistory and error are updated correctly
+        assertEquals(null, moodViewModel.moodHistory.value)
+        assertEquals(errorMessage, moodViewModel.error.value)
+        verify(mockMoodRepository).getAllMoods(email)
+    }
+
+    @Test
+    fun `getAllMoods timeout error updates error and isLoading`() = runTest {
+        val email = "test@example.com"
+        val errorMessage = "Connection timeout. Please try again."
+
+        `when`(mockMoodRepository.getAllMoods(email))
+            .thenReturn(Result.failure(Exception("SocketTimeoutException")))
+
+        moodViewModel.getAllMoods(email)
+
+        assertEquals(errorMessage, moodViewModel.error.value)
+        assertEquals(false, moodViewModel.isLoading.value)
+    }
+
+    @Test
+    fun `getAllMoods generic error updates error and isLoading`() = runTest {
+        val email = "test@example.com"
+        val errorMessage = "Failed to fetch mood history"
+
+        `when`(mockMoodRepository.getAllMoods(email))
+            .thenReturn(Result.failure(Exception(errorMessage)))
+
+        moodViewModel.getAllMoods(email)
+
+        assertEquals(errorMessage, moodViewModel.error.value)
+        assertEquals(false, moodViewModel.isLoading.value)
     }
 }

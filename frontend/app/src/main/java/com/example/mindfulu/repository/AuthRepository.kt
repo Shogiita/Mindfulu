@@ -10,7 +10,7 @@ import kotlinx.coroutines.tasks.await
 
 class AuthRepository {
     private val webService = App.retrofitService
-    private val db = FirebaseFirestore.getInstance()
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     suspend fun loginWithFirestore(username: String, password: String): Result<AuthResponse> {
         return try {

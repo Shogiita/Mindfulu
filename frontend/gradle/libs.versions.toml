@@ -28,7 +28,7 @@ coroutines = "1.8.1"
 firebaseFirestoreKtx = "25.1.4"
 
 # -- Tambahan untuk testing dan image libraries --
-mockitoKotlin = "5.2.1"
+mockitoKotlin = "5.3.1"
 mockitoCore = "5.12.0"
 mockitoInline = "5.12.0"
 kotlinxCoroutinesTest = "1.8.1"

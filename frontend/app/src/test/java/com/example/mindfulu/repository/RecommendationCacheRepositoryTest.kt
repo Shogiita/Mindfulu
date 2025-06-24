@@ -1,6 +1,7 @@
 package com.example.mindfulu.repository
 
-import android.app.Application
+import android.content.Context
+import com.example.mindfulu.App
 import com.example.mindfulu.AppDatabase
 import com.example.mindfulu.RecommendationDao
 import com.example.mindfulu.entity.RecommendationCacheEntity
@@ -11,17 +12,21 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mock
-import org.mockito.Mockito.*
+import org.mockito.Mockito.anyLong
+import org.mockito.Mockito.anyString
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
 import java.util.Calendar
 
 @ExperimentalCoroutinesApi
 class RecommendationCacheRepositoryTest {
 
-    private lateinit var repository: RecommendationCacheRepository
+    private lateinit var recommendationCacheRepository: RecommendationCacheRepository
 
     @Mock
-    private lateinit var mockApplicationContext: Application
+    private lateinit var mockContext: Context
     @Mock
     private lateinit var mockAppDatabase: AppDatabase
     @Mock
@@ -33,74 +38,67 @@ class RecommendationCacheRepositoryTest {
 
         // Mock AppDatabase and its DAO
         `when`(mockAppDatabase.recommendationDao()).thenReturn(mockRecommendationDao)
-        // Mock AppDatabase.getInstance() to return our mocked instance
-        // This is usually tricky for static methods; for a proper unit test,
-        // AppDatabase should be injected or its getInstance() method can be mocked
-        // using PowerMock or by making getInstance non-static (better for testability).
-        // For demonstration, let's assume we can control AppDatabase.getInstance().
-        val getInstanceMethod = AppDatabase.Companion::class.java.getDeclaredMethod("getInstance", Application::class.java)
-        getInstanceMethod.isAccessible = true
-        getInstanceMethod.invoke(null, mockApplicationContext) // Call it once to set the instance if it uses internal singleton logic
 
-        repository = RecommendationCacheRepository(mockApplicationContext)
+        // Use reflection to set the mock AppDatabase instance for the singleton
+        val getInstanceMethod = AppDatabase.Companion::class.java.getDeclaredMethod("getInstance", Context::class.java)
+        getInstanceMethod.isAccessible = true
+        getInstanceMethod.invoke(null, mockContext) // Call it once to set the instance if it uses internal singleton logic
+
+        recommendationCacheRepository = RecommendationCacheRepository(mockContext)
     }
 
-    // Note: The `AppDatabase.getInstance` static method makes true unit testing difficult
-    // without PowerMock or refactoring to inject AppDatabase.
-    // The current setup here assumes a way to control the singleton for testing.
-
     @Test
-    fun `saveRecommendation inserts data into DAO`() = runTest {
-        val entity = RecommendationCacheEntity(userEmail = "test@example.com", date = 1L, suggestionsJson = "{}")
-        repository.saveRecommendation(entity)
-        verify(mockRecommendationDao).insertRecommendation(entity)
+    fun `saveRecommendation inserts into DAO`() = runTest {
+        val recommendation = RecommendationCacheEntity(userEmail = "test@example.com", date = 1L, suggestionsJson = "{}")
+        recommendationCacheRepository.saveRecommendation(recommendation)
+        verify(mockRecommendationDao).insertRecommendation(recommendation)
     }
 
     @Test
     fun `getRecommendationForToday returns cached data if available`() = runTest {
         val email = "test@example.com"
-        val todayStart = Calendar.getInstance().apply {
+        val today = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
-        val expectedEntity = RecommendationCacheEntity(userEmail = email, date = todayStart, suggestionsJson = "{}")
 
-        `when`(mockRecommendationDao.getRecommendationForDate(email, todayStart)).thenReturn(expectedEntity)
+        val mockRecommendation = RecommendationCacheEntity(userEmail = email, date = today, suggestionsJson = "{'test': 'data'}")
+        `when`(mockRecommendationDao.getRecommendationForDate(email, today)).thenReturn(mockRecommendation)
 
-        val result = repository.getRecommendationForToday(email)
-        assertEquals(expectedEntity, result)
-        verify(mockRecommendationDao).getRecommendationForDate(email, todayStart)
+        val result = recommendationCacheRepository.getRecommendationForToday(email)
+
+        assertEquals(mockRecommendation, result)
+        verify(mockRecommendationDao).getRecommendationForDate(email, today)
     }
 
     @Test
-    fun `getRecommendationForToday returns null if no cached data`() = runTest {
+    fun `getRecommendationForToday returns null if no cached data for today`() = runTest {
         val email = "test@example.com"
-        val todayStart = Calendar.getInstance().apply {
+        val today = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
-        `when`(mockRecommendationDao.getRecommendationForDate(email, todayStart)).thenReturn(null)
+        `when`(mockRecommendationDao.getRecommendationForDate(email, today)).thenReturn(null)
 
-        val result = repository.getRecommendationForToday(email)
+        val result = recommendationCacheRepository.getRecommendationForToday(email)
+
         assertNull(result)
-        verify(mockRecommendationDao).getRecommendationForDate(email, todayStart)
+        verify(mockRecommendationDao).getRecommendationForDate(email, today)
     }
 
     @Test
-    fun `cleanOldRecommendations calls DAO to delete old data`() = runTest {
+    fun `cleanOldRecommendations calls deleteOldRecommendations on DAO`() = runTest {
         val email = "test@example.com"
         val daysAgo = 7
-        val threshold = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, -daysAgo)
-        }.timeInMillis
 
-        repository.cleanOldRecommendations(email, daysAgo)
+        recommendationCacheRepository.cleanOldRecommendations(email, daysAgo)
 
-        verify(mockRecommendationDao).deleteOldRecommendations(eq(email), anyLong()) // Use anyLong() for time-dependent arg
+        // Capture the argument passed to verify, ensuring it's a timestamp
+        verify(mockRecommendationDao).deleteOldRecommendations(email, anyLong())
     }
 }
