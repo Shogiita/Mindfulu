@@ -8,6 +8,7 @@ import com.example.mindfulu.data.MusicSuggestion
 import com.example.mindfulu.data.SuggestionResponse
 import com.example.mindfulu.data.Suggestions
 import com.example.mindfulu.entity.RecommendationCacheEntity
+import com.example.mindfulu.repository.RecommendationCacheRepository
 import com.example.mindfulu.repository.SuggestionRepository
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory

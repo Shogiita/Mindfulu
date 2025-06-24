@@ -65,11 +65,13 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
 
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
+    // Ensure you are using the latest Firebase BOM. 33.0.0 is current as of June 2025.
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1")) // Gunakan versi BOM terbaru dari file libs.versions.toml Anda
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
+    // Ensure you are using the latest Play Services Auth. 21.0.0 is current as of June 2025.
     implementation("com.google.android.gms:play-services-auth:21.0.0")
-    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.firestore.ktx) // Tetap ada jika Anda berencana menggunakan Firestore
 
     // Credential Manager
     implementation(libs.androidx.credentials)
@@ -77,7 +79,7 @@ dependencies {
     implementation(libs.googleid)
 
     // Material Design (Jika sudah ada di libs.material, yang ini mungkin duplikat. Biarkan dulu jika belum konflik)
-    implementation (libs.material)
+    implementation ("com.google.android.material:material:1.12.0")
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -98,22 +100,32 @@ dependencies {
 
     // Image
     implementation(libs.picasso)
-    implementation(libs.glide)
-    implementation(libs.coil.kt)
 
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
+    //Image Profile
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    implementation("io.coil-kt:coil:2.5.0")
+
+    // Testing
+    testImplementation(libs.junit) // JUnit 4
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+
     // Mocking
-    testImplementation(libs.mockito.kotlin)
-    testImplementation(libs.mockito.core)
-    testImplementation(libs.mockito.inline)
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 
-    // Coroutine testing
-    testImplementation(libs.kotlinx.coroutines.test)
+    // Unit testing
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:4.11.0")
+    testImplementation("org.mockito:mockito-inline:4.11.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
 
-    // LiveData testing
-    testImplementation(libs.androidx.arch.core.testing)
+
 }

@@ -135,6 +135,6 @@ class LoginRegisterViewModelTest {
 
         // Verify error result
         verify(errorObserver).onChanged(errorMessage)
-        verifyNoMoreInteractions(registerResultObserver) // Ensure no success was posted
+        verifyNoMoreInteractions(registerResultObserver)
     }
 }
