@@ -16,6 +16,6 @@
         android:title="History" />
     <item
         android:id="@+id/mi_setting_home"
-        android:icon="@drawable/baseline_settings_24"
-        android:title=" Setting" />
+        android:icon="@drawable/baseline_account_circle_24"
+        android:title="Account" />
 </menu>
