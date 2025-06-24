@@ -30,6 +30,7 @@ class MoodInsertActivity : AppCompatActivity() {
     private var moodSelected: String = ""
     private var reasonText: String = ""
     private var currentUserEmail: String? = null
+    private var currentUserName: String? = null
 
     private var hasSubmittedMoodToday: Boolean = false
 
@@ -40,6 +41,7 @@ class MoodInsertActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
         currentUserEmail = intent.getStringExtra("user_email_key")
+        currentUserName = intent.getStringExtra("user_name_key")
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -140,6 +142,7 @@ class MoodInsertActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+
             val currentReason = binding.etReason.text.toString().trim()
             val userEmail = currentUserEmail ?: auth.currentUser?.email
 
@@ -166,6 +169,7 @@ class MoodInsertActivity : AppCompatActivity() {
     private fun navigateToHome(suggestionResponse: SuggestionResponse?) {
         val intent = Intent(this, HomeActivity::class.java).apply {
             putExtra("user_email_key", currentUserEmail)
+            putExtra("user_name_key", currentUserName)
             suggestionResponse?.let {
                 putExtra("suggestions_data", it)
             }

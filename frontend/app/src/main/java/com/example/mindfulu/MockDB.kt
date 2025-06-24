@@ -12,5 +12,8 @@ class MockDB {
         fun addUser(u:User){
             users.add(u)
         }
+
+        var name = ""
+        var email = ""
     }
 }

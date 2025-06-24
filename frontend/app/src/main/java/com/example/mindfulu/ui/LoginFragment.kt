@@ -13,7 +13,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import com.example.mindfulu.MoodInsertActivity // Pastikan ini diimpor
+import com.example.mindfulu.MoodInsertActivity
 import com.example.mindfulu.viewmodel.LoginRegisterViewModel
 import com.example.mindfulu.R
 import com.example.mindfulu.databinding.FragmentLoginBinding
@@ -30,7 +30,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import com.example.mindfulu.App
+import com.example.mindfulu.MockDB
 
 class LoginFragment : Fragment() {
 
@@ -44,6 +46,38 @@ class LoginFragment : Fragment() {
 
     private val TAG = "LoginFragment"
 
+    // [TAMBAHAN] Cek session di onStart()
+    override fun onStart() {
+        super.onStart()
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            // Jika pengguna sudah login, langsung arahkan ke MoodInsertActivity
+            Log.d(TAG, "User already logged in: ${currentUser.uid}")
+            Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
+
+            // Untuk user yang sudah login, ambil data dari Firestore untuk mendapatkan userName
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val userDoc = db.collection("users").document(currentUser.uid).get().await()
+                    val userName = if (userDoc.exists()) {
+                        userDoc.getString("name") ?: currentUser.displayName ?: "User"
+                    } else {
+                        currentUser.displayName ?: "User"
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        navigateToMoodInsertActivity(currentUser.email, userName)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error fetching user data on session check: ${e.message}")
+                    withContext(Dispatchers.Main) {
+                        navigateToMoodInsertActivity(currentUser.email, currentUser.displayName)
+                    }
+                }
+            }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -55,11 +89,12 @@ class LoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        auth = Firebase.auth
+        auth = Firebase.auth // Inisialisasi Firebase Auth
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
+            .requestProfile()
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(requireActivity(), gso)
@@ -80,8 +115,25 @@ class LoginFragment : Fragment() {
 
         vm.loginResult.observe(viewLifecycleOwner) { authResponse ->
             Toast.makeText(context, authResponse.message, Toast.LENGTH_SHORT).show()
-            // [DIUBAH] Selalu arahkan ke MoodInsertActivity, MoodInsertActivity yang akan cek dan redirect
-            navigateToMoodInsertActivity(authResponse.user?.email)
+
+            // Setelah login manual berhasil, ambil userName dari database
+            authResponse.user?.let { user ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        // Ambil userName dari database berdasarkan email atau username
+                        val userName = getUserNameFromDatabase(user.email ?: "", user.username ?: "")
+
+                        withContext(Dispatchers.Main) {
+                            navigateToMoodInsertActivity(user.email, userName)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error fetching userName for manual login: ${e.message}")
+                        withContext(Dispatchers.Main) {
+                            navigateToMoodInsertActivity(user.email, user.username ?: "User")
+                        }
+                    }
+                }
+            }
         }
 
         vm.error.observe(viewLifecycleOwner) { errorMessage ->
@@ -151,12 +203,17 @@ class LoginFragment : Fragment() {
                                 } else {
                                     Log.d(TAG, "User data already exists in Firestore: $userId")
                                 }
-                                // [DIUBAH] Selalu arahkan ke MoodInsertActivity, MoodInsertActivity yang akan cek dan redirect
-                                navigateToMoodInsertActivity(user.email)
+
+                                withContext(Dispatchers.Main) {
+                                    // Arahkan ke MoodInsertActivity setelah login Google berhasil
+                                    navigateToMoodInsertActivity(userEmail, userName)
+                                }
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error saving Google user data to Firestore: ${e.message}", e)
-                                with(Dispatchers.Main) {
+                                withContext(Dispatchers.Main) {
                                     Toast.makeText(context, "Failed to store user data: ${e.message}", Toast.LENGTH_LONG).show()
+                                    // Tetap navigasi meskipun ada error dalam menyimpan data
+                                    navigateToMoodInsertActivity(user.email, user.displayName)
                                 }
                             }
                         }
@@ -172,13 +229,55 @@ class LoginFragment : Fragment() {
             }
     }
 
-    // [BARU] Fungsi navigasi ke MoodInsertActivity
-    private fun navigateToMoodInsertActivity(userEmail: String?) {
+    private suspend fun getUserNameFromDatabase(email: String, username: String): String {
+        return try {
+            // Coba cari berdasarkan email terlebih dahulu
+            var querySnapshot = db.collection("users")
+                .whereEqualTo("email", email)
+                .get()
+                .await()
+
+            if (!querySnapshot.isEmpty) {
+                val document = querySnapshot.documents[0]
+                val name = document.getString("name")
+                if (!name.isNullOrEmpty()) {
+                    return name
+                }
+            }
+
+            // Jika tidak ditemukan berdasarkan email, coba berdasarkan username
+            if (username.isNotEmpty()) {
+                querySnapshot = db.collection("users")
+                    .whereEqualTo("username", username)
+                    .get()
+                    .await()
+
+                if (!querySnapshot.isEmpty) {
+                    val document = querySnapshot.documents[0]
+                    val name = document.getString("name")
+                    if (!name.isNullOrEmpty()) {
+                        return name
+                    }
+                }
+            }
+
+            // Fallback jika tidak ditemukan
+            username.ifEmpty { "User" }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user name from database: ${e.message}")
+            username.ifEmpty { "User" }
+        }
+    }
+
+    private fun navigateToMoodInsertActivity(userEmail: String?, userName: String?) {
+        MockDB.name = userName.toString()
+        MockDB.email = userEmail.toString()
         val intent = Intent(activity, MoodInsertActivity::class.java).apply {
             putExtra("user_email_key", userEmail)
+            putExtra("user_name_key", userName)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         startActivity(intent)
-        activity?.finish()
+        activity?.finish() // Menutup activity saat ini (yang menampung fragment)
     }
 }
