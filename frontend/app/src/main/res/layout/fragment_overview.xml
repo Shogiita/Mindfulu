@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/background"
-    tools:context=".OverviewFragment" >
+    tools:context=".ui.OverviewFragment">
 
     <TextView
         android:id="@+id/textView14"
@@ -25,4 +25,47 @@
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/moodChartContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="120dp"
+        android:orientation="horizontal"
+        android:gravity="bottom"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView14">
+
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/tvEmptyStateOverview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No mood data found. Start tracking your moods!"
+        android:textSize="18sp"
+        android:textStyle="italic"
+        android:textColor="@color/white"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@+id/moodChartContainer"
+        app:layout_constraintBottom_toBottomOf="@+id/moodChartContainer"
+        app:layout_constraintStart_toStartOf="@+id/moodChartContainer"
+        app:layout_constraintEnd_toEndOf="@+id/moodChartContainer" />
+
+    <ProgressBar
+        android:id="@+id/progressBarOverview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@+id/moodChartContainer"
+        app:layout_constraintBottom_toBottomOf="@+id/moodChartContainer"
+        app:layout_constraintStart_toStartOf="@+id/moodChartContainer"
+        app:layout_constraintEnd_toEndOf="@+id/moodChartContainer" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

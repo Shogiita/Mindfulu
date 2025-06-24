@@ -11,6 +11,7 @@ import androidx.navigation.fragment.findNavController
 import com.example.mindfulu.viewmodel.LoginRegisterViewModel
 import com.example.mindfulu.R
 import com.example.mindfulu.databinding.FragmentRegisterBinding
+import com.example.mindfulu.App // Import App class
 
 class RegisterFragment : Fragment() {
 
@@ -38,7 +39,7 @@ class RegisterFragment : Fragment() {
         vm.error.observe(viewLifecycleOwner) { errorMessage ->
             Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
         }
-        
+
 
         // Tombol Register
         binding.buttonSignUp.setOnClickListener {
@@ -63,7 +64,12 @@ class RegisterFragment : Fragment() {
                     Toast.makeText(context, "Passwords do not match!", Toast.LENGTH_SHORT).show()
                 }
                 else -> {
-                    vm.register(username, name, email, password, confirmPassword)
+                    // [DIUBAH] Hash password sebelum mengirimkannya ke ViewModel
+                    val hashedPassword = App.hashPassword(password)
+                    val hashedCpassword = App.hashPassword(confirmPassword) // Ini hanya untuk memastikan mereka sama setelah hash jika Anda mau, tapi yang penting passwordnya yang dihash.
+
+                    // Panggil register dengan password yang sudah di-hash
+                    vm.register(username, name, email, hashedPassword, hashedCpassword)
                 }
             }
         }

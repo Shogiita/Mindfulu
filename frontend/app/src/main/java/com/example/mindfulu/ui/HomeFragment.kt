@@ -10,7 +10,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mindfulu.R
 import com.example.mindfulu.adapter.ActivitySuggestionsAdapter
-import com.example.mindfulu.data.SuggestionResponse // Perbaikan: Import dengan package lengkap
+import com.example.mindfulu.data.SuggestionResponse
 import com.example.mindfulu.databinding.FragmentHomeBinding
 import com.example.mindfulu.viewmodel.SuggestionViewModel
 
@@ -34,29 +34,31 @@ class HomeFragment : Fragment() {
         // Ambil data saran dari intent
         activity?.intent?.getParcelableExtra<SuggestionResponse>("suggestions_data")?.let { suggestions ->
             displaySuggestions(suggestions)
+        } ?: run {
         }
 
-        // TAMBAHKAN BLOK INI UNTUK MENGAMBIL DATA MOOD
+
+        // [DIUBAH] Ambil data mood yang terpilih (dari MoodInsertActivity atau pengalihan langsung)
         activity?.intent?.getStringExtra("selected_mood")?.let { mood ->
             updateMoodImage(mood)
+        } ?: run {
+            // [BARU] Jika tidak ada mood yang dipilih, set gambar default atau sembunyikan
+            binding.imageView.setImageResource(R.drawable.happy) // Default happy face
         }
     }
 
     private fun setupObservers() {
-        // Corrected: Typo in parameter name from 'SuggestionReponse' to 'suggestionResponse'
         suggestionViewModel.suggestions.observe(viewLifecycleOwner) { suggestionResponse ->
             displaySuggestions(suggestionResponse)
         }
     }
 
     private fun displaySuggestions(suggestions: SuggestionResponse) {
-        // Display music suggestion
         with(suggestions.suggestions.saranMusik) {
             binding.tvMusicTitle.text = judul
             binding.tvMusicArtist.text = artis
             binding.tvMusicReason.text = alasan
             binding.btnPlayMusic.setOnClickListener {
-                // Open YouTube link if available
                 linkVideo?.let { url ->
                     val bundle = Bundle().apply {
                         putString("video_url_key", url)
@@ -66,20 +68,18 @@ class HomeFragment : Fragment() {
             }
         }
 
-        // Display activity suggestions
         val activities = suggestions.suggestions.saranKegiatan
         binding.rvActivities.layoutManager = LinearLayoutManager(context)
         binding.rvActivities.adapter = ActivitySuggestionsAdapter(activities)
     }
 
-    // TAMBAHKAN FUNGSI BARU INI UNTUK MENGUBAH GAMBAR
     private fun updateMoodImage(mood: String) {
         val moodDrawable = when (mood.lowercase()) {
             "sad" -> R.drawable.sad
-            "bad" -> R.drawable.ok // Sesuai dengan layout activity_mood_insert.xml
+            "bad" -> R.drawable.ok
             "happy" -> R.drawable.happy
             "lovely" -> R.drawable.lovely
-            else -> R.drawable.happy // Default jika mood tidak dikenali
+            else -> R.drawable.happy
         }
         binding.imageView.setImageResource(moodDrawable)
     }

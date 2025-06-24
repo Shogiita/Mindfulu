@@ -10,7 +10,7 @@ import kotlinx.coroutines.tasks.await
 
 class AuthRepository {
     private val webService = App.retrofitService
-    private val db = FirebaseFirestore.getInstance()
+    private val db = FirebaseFirestore.getInstance() // Firestore instance tetap digunakan
 
     // Firebase Firestore Login
     suspend fun loginWithFirestore(username: String, password: String): Result<AuthResponse> {
@@ -25,11 +25,12 @@ class AuthRepository {
                 Result.failure(Exception("Username not found."))
             } else {
                 val userDocument = querySnapshot.documents[0]
-                val storedPassword = userDocument.getString("password")
+                val storedPassword = userDocument.getString("password") // Ini akan mengambil password yang sudah di-hash
                 val storedEmail = userDocument.getString("email")
                 val storedName = userDocument.getString("name")
                 val userId = userDocument.id
 
+                // [PENTING] Perbandingan sekarang adalah antara hashed password yang diinput dan hashed password yang disimpan
                 if (storedPassword == password) {
                     val userResponse = UserResponse(
                         id = userId.hashCode(),
@@ -52,8 +53,8 @@ class AuthRepository {
         username: String,
         name: String,
         email: String,
-        password: String,
-        cpassword: String
+        password: String, // Ini akan menerima password yang sudah di-hash dari frontend
+        cpassword: String // Ini juga akan menerima password yang sudah di-hash
     ): Result<AuthResponse> {
         return try {
             // Check existing username
@@ -83,13 +84,13 @@ class AuthRepository {
                 "username" to username,
                 "name" to name,
                 "email" to email,
-                "password" to password // TODO: Hash this password!
+                "password" to password // Sekarang ini menyimpan password yang sudah di-hash
             )
 
             db.collection("users").add(newUser).await()
 
             val userResponse = UserResponse(
-                id = 0,
+                id = 0, // ID ini perlu di-handle dengan benar, mungkin dari docRef.id
                 username = username,
                 name = name,
                 email = email
@@ -101,45 +102,9 @@ class AuthRepository {
         }
     }
 
-    // API Login (if you want to use your backend API instead)
-    suspend fun loginWithAPI(username: String, password: String): Result<AuthResponse> {
-        return try {
-            val request = LoginRequest(username, password)
-            val response = webService.login(request)
+    // API Login (pastikan ini tetap dikomentari atau dihapus jika tidak digunakan)
+    // suspend fun loginWithAPI(username: String, password: String): Result<AuthResponse> { ... }
 
-            if (response.isSuccessful) {
-                response.body()?.let { authResponse ->
-                    Result.success(authResponse)
-                } ?: Result.failure(Exception("Empty response"))
-            } else {
-                Result.failure(Exception("Login failed: ${response.message()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    // API Register (if you want to use your backend API instead)
-    suspend fun registerWithAPI(
-        username: String,
-        name: String,
-        email: String,
-        password: String,
-        cpassword: String
-    ): Result<AuthResponse> {
-        return try {
-            val request = RegisterRequest(username, name, email, password, cpassword)
-            val response = webService.register(request)
-
-            if (response.isSuccessful) {
-                response.body()?.let { authResponse ->
-                    Result.success(authResponse)
-                } ?: Result.failure(Exception("Empty response"))
-            } else {
-                Result.failure(Exception("Registration failed: ${response.message()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+    // API Register (pastikan ini tetap dikomentari atau dihapus jika tidak digunakan)
+    // suspend fun registerWithAPI(username: String, name: String, email: String, password: String, cpassword: String): Result<AuthResponse> { ... }
 }

@@ -17,7 +17,6 @@ import com.google.firebase.auth.FirebaseAuth
 class HistoryFragment : Fragment() {
     private lateinit var binding: FragmentHistoryBinding
     private val moodViewModel: MoodViewModel by viewModels()
-    // [BARU] Mendapatkan instance Firebase Auth
     private lateinit var auth: FirebaseAuth
 
     override fun onCreateView(
@@ -25,7 +24,6 @@ class HistoryFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         binding = FragmentHistoryBinding.inflate(inflater, container, false)
-        // [BARU] Inisialisasi Firebase Auth
         auth = FirebaseAuth.getInstance()
         return binding.root
     }
@@ -36,17 +34,16 @@ class HistoryFragment : Fragment() {
         setupObservers()
         setupRecyclerView()
 
-        // [DIUBAH] Load mood history berdasarkan email pengguna yang sedang login
-        val currentUser = auth.currentUser
-        if (currentUser != null && currentUser.email != null) {
-            // Jika pengguna login dan memiliki email, panggil fungsi dengan email tersebut
-            moodViewModel.getAllMoods(currentUser.email!!)
+        // [DIUBAH] Prioritaskan email dari arguments, lalu fallback ke Firebase Auth
+        val userEmail = arguments?.getString("user_email_key") ?: auth.currentUser?.email
+
+        if (userEmail != null) {
+            moodViewModel.getAllMoods(userEmail)
         } else {
-            // Tangani kasus jika pengguna tidak login atau tidak memiliki email
             binding.progressBar.isVisible = false
             binding.tvEmptyState.isVisible = true
             binding.tvEmptyState.text = "You need to be logged in to see history."
-            Toast.makeText(context, "User not authenticated.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "User not authenticated or email not found.", Toast.LENGTH_LONG).show()
         }
     }
 

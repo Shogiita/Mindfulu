@@ -6,11 +6,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.NavController
 import com.example.mindfulu.R
 import com.example.mindfulu.databinding.ActivityHomeBinding
 
 class HomeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityHomeBinding
+    private lateinit var navController: NavController // [BARU] Deklarasi navController
+    private var userEmail: String? = null // [BARU] Simpan email pengguna
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,20 +27,26 @@ class HomeActivity : AppCompatActivity() {
             insets
         }
 
+        // [BARU] Ambil email dari Intent yang dikirim dari MoodInsertActivity
+        userEmail = intent.getStringExtra("user_email_key")
+
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainerHome) as NavHostFragment
-        val navController = navHostFragment.navController
+        navController = navHostFragment.navController // [DIUBAH] Inisialisasi navController
 
         binding.navigationHome.setOnItemSelectedListener {
-            if (it.itemId == R.id.mi_home_home){
-                navController.navigate(R.id.action_global_homeFragment)
-            } else if (it.itemId == R.id.mi_overview_home){
-                navController.navigate(R.id.action_global_overviewFragment)
-            } else if (it.itemId == R.id.mi_history_home){
-                navController.navigate(R.id.action_global_historyFragment)
-            } else if (it.itemId == R.id.mi_setting_home){
-                navController.navigate(R.id.action_global_settingFragment)
+            val bundle = Bundle().apply {
+                putString("user_email_key", userEmail) // Selalu teruskan email ke fragment
+            }
+
+            when (it.itemId) {
+                R.id.mi_home_home -> navController.navigate(R.id.action_global_homeFragment, bundle)
+                R.id.mi_overview_home -> navController.navigate(R.id.action_global_overviewFragment, bundle)
+                R.id.mi_history_home -> navController.navigate(R.id.action_global_historyFragment, bundle)
+                R.id.mi_setting_home -> navController.navigate(R.id.action_global_settingFragment, bundle)
             }
             true
         }
+        // [BARU] Set item default yang terpilih agar bundle awal terkirim
+        binding.navigationHome.selectedItemId = R.id.mi_home_home
     }
 }

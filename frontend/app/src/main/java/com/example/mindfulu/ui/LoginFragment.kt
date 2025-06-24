@@ -13,7 +13,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import com.example.mindfulu.MoodInsertActivity
+import com.example.mindfulu.MoodInsertActivity // Pastikan ini diimpor
 import com.example.mindfulu.viewmodel.LoginRegisterViewModel
 import com.example.mindfulu.R
 import com.example.mindfulu.databinding.FragmentLoginBinding
@@ -24,19 +24,19 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FirebaseFirestore // Import Firestore
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await // Import for await()
+import kotlinx.coroutines.tasks.await
+import com.example.mindfulu.App
 
 class LoginFragment : Fragment() {
 
     private val vm: LoginRegisterViewModel by viewModels()
     private lateinit var binding: FragmentLoginBinding
 
-    // Firebase & Google Sign-In
     private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
@@ -57,7 +57,6 @@ class LoginFragment : Fragment() {
 
         auth = Firebase.auth
 
-        // Google Sign-In config
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -79,9 +78,10 @@ class LoginFragment : Fragment() {
             }
         }
 
-        vm.loginResult.observe(viewLifecycleOwner) {
-            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-            navigateToHome()
+        vm.loginResult.observe(viewLifecycleOwner) { authResponse ->
+            Toast.makeText(context, authResponse.message, Toast.LENGTH_SHORT).show()
+            // [DIUBAH] Selalu arahkan ke MoodInsertActivity, MoodInsertActivity yang akan cek dan redirect
+            navigateToMoodInsertActivity(authResponse.user?.email)
         }
 
         vm.error.observe(viewLifecycleOwner) { errorMessage ->
@@ -92,7 +92,6 @@ class LoginFragment : Fragment() {
             binding.progressBarLogin.isVisible = isLoading
         }
 
-        // Button click listeners
         binding.buttonSignIn.setOnClickListener {
             val username = binding.etUsernameLogin.text.toString().trim()
             val password = binding.etPasswordLogin.text.toString()
@@ -100,7 +99,8 @@ class LoginFragment : Fragment() {
             if (username.isEmpty() || password.isEmpty()) {
                 Toast.makeText(context, "There's an empty field!", Toast.LENGTH_SHORT).show()
             } else {
-                vm.login(username, password)
+                val hashedPassword = App.hashPassword(password)
+                vm.login(username, hashedPassword)
             }
         }
 
@@ -128,38 +128,33 @@ class LoginFragment : Fragment() {
                     Log.d(TAG, "signInWithCredential:success")
                     Toast.makeText(context, "Google Sign In Success", Toast.LENGTH_SHORT).show()
 
-                    // --- BARU DITAMBAHKAN: Simpan data user ke Firestore setelah login Google ---
                     val firebaseUser = auth.currentUser
                     firebaseUser?.let { user ->
-                        CoroutineScope(Dispatchers.IO).launch { // Gunakan coroutine untuk operasi Firestore
+                        CoroutineScope(Dispatchers.IO).launch {
                             try {
                                 val userId = user.uid
                                 val userEmail = user.email ?: ""
-                                val userName = user.displayName ?: "" // Nama dari Google
-                                val userUsername = userEmail.substringBefore("@") // Contoh username dari email
+                                val userName = user.displayName ?: ""
+                                val userUsername = userEmail.substringBefore("@")
 
                                 val userDocRef = db.collection("users").document(userId)
 
-                                // Periksa apakah dokumen user sudah ada
                                 val documentSnapshot = userDocRef.get().await()
                                 if (!documentSnapshot.exists()) {
-                                    // Jika belum ada, buat dokumen baru
                                     val userData = hashMapOf(
                                         "email" to userEmail,
                                         "name" to userName,
                                         "username" to userUsername,
-                                        // Password TIDAK disimpan di sini untuk Google Sign-In
                                     )
                                     userDocRef.set(userData).await()
                                     Log.d(TAG, "User data saved to Firestore: $userId")
                                 } else {
                                     Log.d(TAG, "User data already exists in Firestore: $userId")
                                 }
-                                // Setelah selesai menyimpan/memverifikasi data di Firestore, baru navigasi
-                                navigateToHome()
+                                // [DIUBAH] Selalu arahkan ke MoodInsertActivity, MoodInsertActivity yang akan cek dan redirect
+                                navigateToMoodInsertActivity(user.email)
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error saving Google user data to Firestore: ${e.message}", e)
-                                // Tampilkan pesan error ke user jika perlu
                                 with(Dispatchers.Main) {
                                     Toast.makeText(context, "Failed to store user data: ${e.message}", Toast.LENGTH_LONG).show()
                                 }
@@ -169,7 +164,6 @@ class LoginFragment : Fragment() {
                         Log.e(TAG, "Firebase User is null after Google Sign-In success.")
                         Toast.makeText(context, "Authentication failed: User data not found.", Toast.LENGTH_SHORT).show()
                     }
-                    // ---------------------------------------------------------------------
 
                 } else {
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
@@ -178,9 +172,12 @@ class LoginFragment : Fragment() {
             }
     }
 
-    private fun navigateToHome() {
-        val intent = Intent(activity, MoodInsertActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    // [BARU] Fungsi navigasi ke MoodInsertActivity
+    private fun navigateToMoodInsertActivity(userEmail: String?) {
+        val intent = Intent(activity, MoodInsertActivity::class.java).apply {
+            putExtra("user_email_key", userEmail)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
         startActivity(intent)
         activity?.finish()
     }
