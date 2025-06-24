@@ -116,17 +116,14 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     // Mocking
-    // For Mockito-Kotlin, which provides Kotlin-friendly APIs for Mockito
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1") // Or the latest version
-    testImplementation("org.mockito:mockito-core:5.12.0") // Or the latest version
-    // Required for mocking final classes/methods like some Firebase ones.
-    // Also, create a file in `src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker`
-    // with content `mock-maker-inline` to enable this.
-    testImplementation("org.mockito:mockito-inline:5.12.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 
-    // Coroutine testing
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1") // Or the latest version
+    testImplementation("org.mockito:mockito-core:5.11.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("org.mockito:mockito-inline:4.11.0") // ✅ Gunakan ini!
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 
-    // LiveData testing
-    testImplementation("androidx.arch.core:core-testing:2.2.0") // Or the latest version
+
 }
