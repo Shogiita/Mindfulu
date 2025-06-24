@@ -16,16 +16,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="100dp"
+            android:layout_marginTop="50dp"
             android:textColor="@color/white"
-            android:text="Video dari dalam Fragment"
+            android:text="Your Mood Music Video"
             android:textSize="18sp"
             android:layout_marginBottom="20dp"/>
 
         <WebView
             android:id="@+id/youtube_webview"
             android:layout_width="match_parent"
-            android:layout_height="300dp" />
+            android:layout_height="550dp" />
 
     </LinearLayout>
 </FrameLayout>

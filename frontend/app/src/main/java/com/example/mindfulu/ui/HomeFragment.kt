@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mindfulu.R
 import com.example.mindfulu.adapter.ActivitySuggestionsAdapter
@@ -52,8 +53,10 @@ class HomeFragment : Fragment() {
             binding.btnPlayMusic.setOnClickListener {
                 // Open YouTube link if available
                 linkVideo?.let { url ->
-                    // Open URL in browser or YouTube app
-                    // Implementation depends on your preference
+                    val bundle = Bundle().apply {
+                        putString("video_url_key", url)
+                    }
+                    findNavController().navigate(R.id.action_homeFragment_to_youtubeFragment, bundle)
                 }
             }
         }

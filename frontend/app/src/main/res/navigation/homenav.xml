@@ -9,7 +9,11 @@
         android:id="@+id/homeFragment"
         android:name="com.example.mindfulu.ui.HomeFragment"
         android:label="fragment_home"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_homeFragment_to_youtubeFragment"
+            app:destination="@id/youtubeFragment" />
+    </fragment>
     <fragment
         android:id="@+id/historyFragment"
         android:name="com.example.mindfulu.ui.HistoryFragment"
@@ -37,4 +41,13 @@
     <action
         android:id="@+id/action_global_settingFragment"
         app:destination="@id/settingFragment" />
+    <fragment
+        android:id="@+id/youtubeFragment"
+        android:name="com.example.mindfulu.ui.YoutubeFragment"
+        android:label="fragment_youtube"
+        tools:layout="@layout/fragment_youtube" >
+        <argument
+            android:name="video_url_key"
+            app:argType="string" />
+    </fragment>
 </navigation>
