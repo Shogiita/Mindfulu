@@ -65,13 +65,11 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
 
     // Firebase
-    // Ensure you are using the latest Firebase BOM. 33.0.0 is current as of June 2025.
-    implementation(platform("com.google.firebase:firebase-bom:33.1.1")) // Gunakan versi BOM terbaru dari file libs.versions.toml Anda
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
-    // Ensure you are using the latest Play Services Auth. 21.0.0 is current as of June 2025.
     implementation("com.google.android.gms:play-services-auth:21.0.0")
-    implementation(libs.firebase.firestore.ktx) // Tetap ada jika Anda berencana menggunakan Firestore
+    implementation(libs.firebase.firestore.ktx)
 
     // Credential Manager
     implementation(libs.androidx.credentials)
@@ -79,7 +77,7 @@ dependencies {
     implementation(libs.googleid)
 
     // Material Design (Jika sudah ada di libs.material, yang ini mungkin duplikat. Biarkan dulu jika belum konflik)
-    implementation ("com.google.android.material:material:1.12.0")
+    implementation (libs.material)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -100,33 +98,22 @@ dependencies {
 
     // Image
     implementation(libs.picasso)
+    implementation(libs.glide)
+    implementation(libs.coil.kt)
 
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    //Image Profile
-    implementation ("com.github.bumptech.glide:glide:4.16.0")
-    implementation("io.coil-kt:coil:2.5.0")
-
-    // Testing
-    testImplementation(libs.junit) // JUnit 4
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-
     // Mocking
-    // For Mockito-Kotlin, which provides Kotlin-friendly APIs for Mockito
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1") // Or the latest version
-    testImplementation("org.mockito:mockito-core:5.12.0") // Or the latest version
-    // Required for mocking final classes/methods like some Firebase ones.
-    // Also, create a file in `src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker`
-    // with content `mock-maker-inline` to enable this.
-    testImplementation("org.mockito:mockito-inline:5.12.0")
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.inline)
 
     // Coroutine testing
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1") // Or the latest version
+    testImplementation(libs.kotlinx.coroutines.test)
 
     // LiveData testing
-    testImplementation("androidx.arch.core:core-testing:2.2.0") // Or the latest version
+    testImplementation(libs.androidx.arch.core.testing)
 }
