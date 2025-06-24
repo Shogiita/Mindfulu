@@ -1,10 +1,12 @@
 package com.example.mindfulu.ui
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.os.bundleOf
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -31,46 +33,45 @@ class HomeFragment : Fragment() {
 
         setupObservers()
 
-        // Ambil data saran dari intent
         activity?.intent?.getParcelableExtra<SuggestionResponse>("suggestions_data")?.let { suggestions ->
             displaySuggestions(suggestions)
         } ?: run {
+            // [NEW] Handle case where no suggestion data is available
+            Log.d("HomeFragment", "No suggestion data found in intent.")
+            binding.tvMusicTitle.text = "No Music Suggestion"
+            binding.tvMusicArtist.text = "Submit your mood to get one!"
+            binding.tvMusicReason.text = ""
+            binding.rvActivities.adapter = ActivitySuggestionsAdapter(emptyList())
         }
 
-
-        // [DIUBAH] Ambil data mood yang terpilih (dari MoodInsertActivity atau pengalihan langsung)
         activity?.intent?.getStringExtra("selected_mood")?.let { mood ->
             updateMoodImage(mood)
         } ?: run {
-            // [BARU] Jika tidak ada mood yang dipilih, set gambar default atau sembunyikan
-            binding.imageView.setImageResource(R.drawable.happy) // Default happy face
+            binding.imageView.setImageResource(R.drawable.happy) // Default image
         }
     }
 
     private fun setupObservers() {
         suggestionViewModel.suggestions.observe(viewLifecycleOwner) { suggestionResponse ->
-            displaySuggestions(suggestionResponse)
+            displaySuggestions(suggestionResponse!!)
         }
     }
 
     private fun displaySuggestions(suggestions: SuggestionResponse) {
-        with(suggestions.suggestions.saranMusik) {
-            binding.tvMusicTitle.text = judul
-            binding.tvMusicArtist.text = artis
-            binding.tvMusicReason.text = alasan
-            binding.btnPlayMusic.setOnClickListener {
-                linkVideo?.let { url ->
-                    val bundle = Bundle().apply {
-                        putString("video_url_key", url)
-                    }
-                    findNavController().navigate(R.id.action_homeFragment_to_youtubeFragment, bundle)
-                }
+        val music = suggestions.suggestions.saranMusik
+        binding.tvMusicTitle.text = music.judul
+        binding.tvMusicArtist.text = music.artis
+        binding.tvMusicReason.text = music.alasan
+
+        binding.btnPlayMusic.setOnClickListener {
+            music.linkVideo?.let { url ->
+                val bundle = bundleOf("video_url_key" to url)
+                findNavController().navigate(R.id.action_homeFragment_to_youtubeFragment, bundle)
             }
         }
 
-        val activities = suggestions.suggestions.saranKegiatan
         binding.rvActivities.layoutManager = LinearLayoutManager(context)
-        binding.rvActivities.adapter = ActivitySuggestionsAdapter(activities)
+        binding.rvActivities.adapter = ActivitySuggestionsAdapter(suggestions.suggestions.saranKegiatan)
     }
 
     private fun updateMoodImage(mood: String) {
@@ -79,7 +80,7 @@ class HomeFragment : Fragment() {
             "bad" -> R.drawable.ok
             "happy" -> R.drawable.happy
             "lovely" -> R.drawable.lovely
-            else -> R.drawable.happy
+            else -> R.drawable.happy // Default to happy if mood is unrecognized
         }
         binding.imageView.setImageResource(moodDrawable)
     }

@@ -108,4 +108,5 @@ dependencies {
 
     //Image Profile
     implementation ("com.github.bumptech.glide:glide:4.16.0")
+    implementation("io.coil-kt:coil:2.5.0")
 }

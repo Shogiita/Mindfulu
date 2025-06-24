@@ -11,7 +11,9 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import com.bumptech.glide.Glide
+//import com.bumptech.glide.Glide
+import coil.load
+import coil.transform.CircleCropTransformation
 import com.example.mindfulu.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -115,12 +117,11 @@ class SettingFragment : Fragment() {
                     emailTextView.text = currentUser.email ?: "No Email"
                 }
 
-                Glide.with(requireContext())
-                    .load(currentUser.photoUrl)
-                    .placeholder(R.drawable.baseline_account_circle_24)
-                    .error(R.drawable.baseline_account_circle_24)
-                    .circleCrop()
-                    .into(profileImageView)
+                profileImageView.load(currentUser.photoUrl) {
+                    placeholder(R.drawable.baseline_account_circle_24)
+                    error(R.drawable.baseline_account_circle_24)
+                    transformations(CircleCropTransformation())
+                }
 
                 logoutButton.isEnabled = true
             }

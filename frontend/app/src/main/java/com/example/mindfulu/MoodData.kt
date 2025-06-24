@@ -4,5 +4,6 @@ data class MoodData(
     val mood: String,
     val reason: String,
     val date: Long,
-    val id: String
+    val id: String,
+    val email: String
 )

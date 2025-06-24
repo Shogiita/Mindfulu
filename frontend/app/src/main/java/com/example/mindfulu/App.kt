@@ -31,7 +31,7 @@ class App : Application() {
         val retrofit = Retrofit.Builder()
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
-            .baseUrl("http://10.15.3.153:3000/")
+            .baseUrl("http://10.0.2.2:3000/")
             .build()
 
         val retrofitService = retrofit.create(WebService::class.java)
