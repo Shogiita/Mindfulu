@@ -62,6 +62,8 @@ class MoodInsertActivity : AppCompatActivity() {
         suggestionViewModel.suggestions.observe(this) { suggestionResponse: SuggestionResponse ->
             val intent = Intent(this, HomeActivity::class.java).apply {
                 putExtra("suggestions_data", suggestionResponse)
+                // PASTIKAN BARIS INI DITAMBAHKAN:
+                putExtra("selected_mood", moodSelected)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
             startActivity(intent)

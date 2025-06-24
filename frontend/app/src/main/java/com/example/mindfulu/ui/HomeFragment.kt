@@ -31,9 +31,14 @@ class HomeFragment : Fragment() {
 
         setupObservers()
 
-        // Check if we have suggestions data from MoodInsertActivity
+        // Ambil data saran dari intent
         activity?.intent?.getParcelableExtra<SuggestionResponse>("suggestions_data")?.let { suggestions ->
             displaySuggestions(suggestions)
+        }
+
+        // TAMBAHKAN BLOK INI UNTUK MENGAMBIL DATA MOOD
+        activity?.intent?.getStringExtra("selected_mood")?.let { mood ->
+            updateMoodImage(mood)
         }
     }
 
@@ -65,5 +70,17 @@ class HomeFragment : Fragment() {
         val activities = suggestions.suggestions.saranKegiatan
         binding.rvActivities.layoutManager = LinearLayoutManager(context)
         binding.rvActivities.adapter = ActivitySuggestionsAdapter(activities)
+    }
+
+    // TAMBAHKAN FUNGSI BARU INI UNTUK MENGUBAH GAMBAR
+    private fun updateMoodImage(mood: String) {
+        val moodDrawable = when (mood.lowercase()) {
+            "sad" -> R.drawable.sad
+            "bad" -> R.drawable.ok // Sesuai dengan layout activity_mood_insert.xml
+            "happy" -> R.drawable.happy
+            "lovely" -> R.drawable.lovely
+            else -> R.drawable.happy // Default jika mood tidak dikenali
+        }
+        binding.imageView.setImageResource(moodDrawable)
     }
 }
