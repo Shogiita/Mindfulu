@@ -66,7 +66,7 @@ dependencies {
 
     // Firebase
     // Ensure you are using the latest Firebase BOM. 33.0.0 is current as of June 2025.
-    implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1")) // Gunakan versi BOM terbaru dari file libs.versions.toml Anda
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
     // Ensure you are using the latest Play Services Auth. 21.0.0 is current as of June 2025.

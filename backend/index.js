@@ -200,6 +200,7 @@ app.post("/suggestions", async (req, res) => {
             const searchResult = await searchResponse.json();
             if (searchResult.items && searchResult.items.length > 0) {
                 const videoId = searchResult.items[0].id.videoId;
+                // [PERBAIKAN] Gunakan format URL YouTube yang benar
                 validVideoLink = `https://www.youtube.com/watch?v=${videoId}`;
             }
         }

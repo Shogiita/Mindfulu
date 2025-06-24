@@ -21,7 +21,7 @@ class SuggestionViewModel : ViewModel() {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> get() = _isLoading
 
-    fun fetchSuggestions(mood: String, reason: String) {
+    fun getSuggestions(mood: String, reason: String) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
