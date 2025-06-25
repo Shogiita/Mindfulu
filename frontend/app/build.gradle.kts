@@ -43,6 +43,15 @@ android {
         dataBinding = true
         viewBinding = true
     }
+
+    // [BARU] Tambahkan blok ini untuk mengatasi masalah duplikasi Byte Buddy
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // Tambahkan ini untuk mengatasi masalah spesifik dengan lisensi mockito-inline
+            excludes += "META-INF/licenses/ASM"
+        }
+    }
 }
 
 dependencies {
@@ -65,20 +74,18 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
 
     // Firebase
-    // Ensure you are using the latest Firebase BOM. 33.0.0 is current as of June 2025.
-    implementation(platform("com.google.firebase:firebase-bom:33.1.1")) // Gunakan versi BOM terbaru dari file libs.versions.toml Anda
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
-    // Ensure you are using the latest Play Services Auth. 21.0.0 is current as of June 2025.
     implementation("com.google.android.gms:play-services-auth:21.0.0")
-    implementation(libs.firebase.firestore.ktx) // Tetap ada jika Anda berencana menggunakan Firestore
+    implementation(libs.firebase.firestore.ktx)
 
     // Credential Manager
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
-    // Material Design (Jika sudah ada di libs.material, yang ini mungkin duplikat. Biarkan dulu jika belum konflik)
+    // Material Design
     implementation ("com.google.android.material:material:1.12.0")
 
     // Coroutines
@@ -101,12 +108,7 @@ dependencies {
     // Image
     implementation(libs.picasso)
 
-    // Testing
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-
-    //Image Profile
+    // Image Profile
     implementation ("com.github.bumptech.glide:glide:4.16.0")
     implementation("io.coil-kt:coil:2.5.0")
 
@@ -119,13 +121,15 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 
-    // Unit testing
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:4.11.0")
-    testImplementation("org.mockito:mockito-inline:4.11.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    // [DIUBAH] Versi mockito-inline diperbarui agar lebih konsisten
+    testImplementation("org.mockito:mockito-core:5.11.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("org.mockito:mockito-inline:5.2.0") // Diperbarui dari 4.11.0
     testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 
-
+    // [KUNCI PERBAIKAN] Tambahkan dependensi Byte Buddy secara eksplisit untuk testing
+    // Ini memaksa Gradle untuk menggunakan versi yang kompatibel dengan Java 21
+    testImplementation("net.bytebuddy:byte-buddy:1.14.17")
+    testImplementation("net.bytebuddy:byte-buddy-agent:1.14.17")
 }

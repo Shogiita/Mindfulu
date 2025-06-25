@@ -1,12 +1,8 @@
 package com.example.mindfulu.repository
 
-import com.example.mindfulu.App
-import com.example.mindfulu.WebService
 import com.example.mindfulu.data.AuthResponse
-import com.example.mindfulu.data.LoginRequest
-import com.example.mindfulu.data.RegisterRequest
 import com.example.mindfulu.data.UserResponse
-import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
@@ -16,243 +12,231 @@ import com.google.firebase.firestore.QuerySnapshot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.mockito.ArgumentMatchers.anyLong
+import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.any
-import org.mockito.Mockito.anyString
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
-import org.mockito.MockitoAnnotations
+import org.mockito.junit.MockitoJUnitRunner
 
 @ExperimentalCoroutinesApi
+@RunWith(MockitoJUnitRunner::class) // Gunakan runner ini untuk inisialisasi mock yang lebih baik
 class AuthRepositoryTest {
 
+    // Target yang akan diuji
     private lateinit var authRepository: AuthRepository
 
-    @Mock
-    private lateinit var mockWebService: WebService // Although not directly used by the tested methods, it's a dependency in the original AuthRepository
+    // Dependensi yang akan di-mock
     @Mock
     private lateinit var mockFirestore: FirebaseFirestore
+
+    // Objek mock pembantu
     @Mock
     private lateinit var mockCollectionReference: CollectionReference
     @Mock
-    private lateinit var mockQuery: Query
-    @Mock
-    private lateinit var mockTaskQuerySnapshot: Task<QuerySnapshot>
-    @Mock
-    private lateinit var mockQuerySnapshot: QuerySnapshot
-    @Mock
     private lateinit var mockDocumentSnapshot: DocumentSnapshot
-    @Mock
-    private lateinit var mockTaskDocumentReference: Task<DocumentReference>
-    @Mock
-    private lateinit var mockDocumentReference: DocumentReference
 
     @Before
     fun setup() {
-        MockitoAnnotations.openMocks(this)
-        authRepository = AuthRepository()
+        // [PERBAIKAN KUNCI] Suntikkan mock Firestore ke repository melalui konstruktor
+        authRepository = AuthRepository(mockFirestore)
 
-        // Inject mock Firestore
-        val dbField = AuthRepository::class.java.getDeclaredField("db")
-        dbField.isAccessible = true
-        dbField.set(authRepository, mockFirestore)
-
-        // Mock common Firestore call chain
-        `when`(mockFirestore.collection(anyString())).thenReturn(mockCollectionReference)
-        `when`(mockCollectionReference.whereEqualTo(anyString(), any())).thenReturn(mockQuery)
-        `when`(mockQuery.limit(anyLong())).thenReturn(mockQuery)
-        `when`(mockQuery.get()).thenReturn(mockTaskQuerySnapshot)
-        `when`(mockTaskQuerySnapshot.isSuccessful).thenReturn(true)
-        `when`(mockTaskQuerySnapshot.isComplete).thenReturn(true)
-        `when`(mockTaskQuerySnapshot.result).thenReturn(mockQuerySnapshot)
-        `when`(mockTaskQuerySnapshot.exception).thenReturn(null)
-
-        `when`(mockCollectionReference.add(any())).thenReturn(mockTaskDocumentReference)
-        `when`(mockTaskDocumentReference.isSuccessful).thenReturn(true)
-        `when`(mockTaskDocumentReference.isComplete).thenReturn(true)
-        `when`(mockTaskDocumentReference.result).thenReturn(mockDocumentReference)
-        `when`(mockTaskDocumentReference.exception).thenReturn(null)
-
-        // Mock App.retrofitService, though not used in the Firestore methods, it's part of the AuthRepository constructor
-        val retrofitServiceField = App.Companion::class.java.getDeclaredField("retrofitService")
-        retrofitServiceField.isAccessible = true
-        retrofitServiceField.set(null, mockWebService)
+        // Atur agar setiap panggilan ke collection("users") mengembalikan mock collection reference
+        `when`(mockFirestore.collection("users")).thenReturn(mockCollectionReference)
     }
 
-    // --- Login Tests ---
+    // --- Tes untuk Login ---
 
     @Test
-    fun `loginWithFirestore returns success if username and password match`() = runTest {
+    fun `loginWithFirestore harus mengembalikan sukses jika username dan password cocok`() = runTest {
         val username = "testuser"
         val password = "hashedpassword"
         val email = "test@example.com"
         val name = "Test User"
+        val userId = "user123"
 
-        // Prepare mock query snapshot for existing user
-        val mockDocumentList = listOf(mockDocumentSnapshot)
+        // (Arrange) Atur skenario: Pengguna ada dan password cocok
+        val mockQuery = mock(Query::class.java)
+        val mockQuerySnapshot = mock(QuerySnapshot::class.java)
+
+        `when`(mockCollectionReference.whereEqualTo("username", username)).thenReturn(mockQuery)
+        `when`(mockQuery.limit(1)).thenReturn(mockQuery)
+        `when`(mockQuery.get()).thenReturn(Tasks.forResult(mockQuerySnapshot))
         `when`(mockQuerySnapshot.isEmpty).thenReturn(false)
-        `when`(mockQuerySnapshot.documents).thenReturn(mockDocumentList)
-        `when`(mockDocumentSnapshot.exists()).thenReturn(true)
+        `when`(mockQuerySnapshot.documents).thenReturn(listOf(mockDocumentSnapshot))
         `when`(mockDocumentSnapshot.getString("password")).thenReturn(password)
         `when`(mockDocumentSnapshot.getString("email")).thenReturn(email)
         `when`(mockDocumentSnapshot.getString("name")).thenReturn(name)
-        `when`(mockDocumentSnapshot.id).thenReturn("someUserId") // For hashCode calculation
+        `when`(mockDocumentSnapshot.id).thenReturn(userId)
 
+        // (Act) Jalankan fungsi yang diuji
         val result = authRepository.loginWithFirestore(username, password)
 
+        // (Assert) Pastikan hasilnya sukses dan datanya benar
         assertTrue(result.isSuccess)
-        val authResponse = result.getOrNull()
-        assertEquals("Login successful!", authResponse?.message)
-        assertEquals(username, authResponse?.user?.username)
-        assertEquals(email, authResponse?.user?.email)
-        assertEquals(name, authResponse?.user?.name)
+        val expectedUser = UserResponse(id = userId.hashCode(), username = username, name = name, email = email)
+        val expectedResponse = AuthResponse("Login successful!", expectedUser)
+        assertEquals(expectedResponse, result.getOrNull())
     }
 
     @Test
-    fun `loginWithFirestore returns failure if username not found`() = runTest {
-        val username = "nonexistent"
-        val password = "anypassword"
+    fun `loginWithFirestore harus mengembalikan kegagalan jika username tidak ditemukan`() = runTest {
+        // (Arrange) Atur skenario: Pengguna tidak ditemukan
+        val mockQuery = mock(Query::class.java)
+        val mockQuerySnapshot = mock(QuerySnapshot::class.java)
 
-        `when`(mockQuerySnapshot.isEmpty).thenReturn(true) // User not found
+        `when`(mockCollectionReference.whereEqualTo("username", "nonexistent")).thenReturn(mockQuery)
+        `when`(mockQuery.limit(1)).thenReturn(mockQuery)
+        `when`(mockQuery.get()).thenReturn(Tasks.forResult(mockQuerySnapshot))
+        `when`(mockQuerySnapshot.isEmpty).thenReturn(true) // Kunci: snapshot kosong
 
-        val result = authRepository.loginWithFirestore(username, password)
+        // (Act) Jalankan fungsi
+        val result = authRepository.loginWithFirestore("nonexistent", "password")
 
+        // (Assert) Pastikan hasilnya gagal dengan pesan yang benar
         assertTrue(result.isFailure)
         assertEquals("Username not found.", result.exceptionOrNull()?.message)
     }
 
     @Test
-    fun `loginWithFirestore returns failure if password mismatch`() = runTest {
-        val username = "testuser"
-        val password = "wrongpassword"
-        val storedPassword = "correctpassword" // Different from `password`
+    fun `loginWithFirestore harus mengembalikan kegagalan jika password tidak cocok`() = runTest {
+        // (Arrange) Atur skenario: Pengguna ada, tapi password salah
+        val mockQuery = mock(Query::class.java)
+        val mockQuerySnapshot = mock(QuerySnapshot::class.java)
 
-        // Prepare mock query snapshot for existing user
-        val mockDocumentList = listOf(mockDocumentSnapshot)
+        `when`(mockCollectionReference.whereEqualTo("username", "testuser")).thenReturn(mockQuery)
+        `when`(mockQuery.limit(1)).thenReturn(mockQuery)
+        `when`(mockQuery.get()).thenReturn(Tasks.forResult(mockQuerySnapshot))
         `when`(mockQuerySnapshot.isEmpty).thenReturn(false)
-        `when`(mockQuerySnapshot.documents).thenReturn(mockDocumentList)
-        `when`(mockDocumentSnapshot.exists()).thenReturn(true)
-        `when`(mockDocumentSnapshot.getString("password")).thenReturn(storedPassword)
+        `when`(mockQuerySnapshot.documents).thenReturn(listOf(mockDocumentSnapshot))
+        `when`(mockDocumentSnapshot.getString("password")).thenReturn("correctpassword") // Password yang disimpan
 
-        val result = authRepository.loginWithFirestore(username, password)
+        // [PERBAIKAN 2] Tambahkan mock untuk .id agar tidak terjadi NullPointerException
+        `when`(mockDocumentSnapshot.id).thenReturn("anyId")
 
+        // (Act) Jalankan fungsi dengan password yang salah
+        val result = authRepository.loginWithFirestore("testuser", "wrongpassword")
+
+        // (Assert) Pastikan hasilnya gagal dengan pesan yang benar
         assertTrue(result.isFailure)
         assertEquals("Invalid username or password.", result.exceptionOrNull()?.message)
     }
 
     @Test
-    fun `loginWithFirestore handles Firestore exception`() = runTest {
-        val username = "testuser"
-        val password = "anypassword"
+    fun `loginWithFirestore harus menangani exception dari Firestore`() = runTest {
+        // (Arrange) Atur skenario: Operasi get() dari Firestore gagal
         val expectedException = Exception("Firestore error")
+        val mockQuery = mock(Query::class.java)
 
-        // Mock Firestore get() to throw an exception
-        `when`(mockTaskQuerySnapshot.isSuccessful).thenReturn(false)
-        `when`(mockTaskQuerySnapshot.exception).thenReturn(expectedException)
+        // [PERBAIKAN 1] Gunakan parameter yang benar untuk whereEqualTo
+        `when`(mockCollectionReference.whereEqualTo("username", "user")).thenReturn(mockQuery)
 
-        val result = authRepository.loginWithFirestore(username, password)
+        `when`(mockQuery.limit(1)).thenReturn(mockQuery)
+        `when`(mockQuery.get()).thenReturn(Tasks.forException(expectedException)) // Kunci: kembalikan Task yang gagal
 
+        // (Act) Jalankan fungsi
+        val result = authRepository.loginWithFirestore("user", "pass")
+
+        // (Assert) Pastikan hasilnya gagal dan exception-nya sama
         assertTrue(result.isFailure)
-        assertEquals("Firestore error", result.exceptionOrNull()?.message)
+        assertEquals(expectedException, result.exceptionOrNull())
     }
 
-    // --- Register Tests ---
+    // --- Tes untuk Register ---
 
     @Test
-    fun `registerWithFirestore returns success if registration is successful`() = runTest {
-        val username = "newuser"
-        val name = "New User"
-        val email = "new@example.com"
-        val password = "newpassword"
-        val cpassword = "newpassword"
+    fun `registerWithFirestore harus berhasil jika username dan email belum ada`() = runTest {
+        // (Arrange) Atur skenario: Username dan email belum terdaftar
+        val mockQuery = mock(Query::class.java)
+        val mockQuerySnapshot = mock(QuerySnapshot::class.java)
+        val mockDocumentReference = mock(DocumentReference::class.java)
 
-        // Mock that username and email do not exist
-        `when`(mockQuerySnapshot.isEmpty).thenReturn(true) // For both existingUsername and existingEmail checks
+        `when`(mockCollectionReference.whereEqualTo("username", "newuser")).thenReturn(mockQuery)
+        `when`(mockCollectionReference.whereEqualTo("email", "new@example.com")).thenReturn(mockQuery)
+        `when`(mockQuery.limit(1)).thenReturn(mockQuery)
+        `when`(mockQuery.get()).thenReturn(Tasks.forResult(mockQuerySnapshot))
+        `when`(mockQuerySnapshot.isEmpty).thenReturn(true) // Kunci: username dan email belum ada
+        `when`(mockCollectionReference.add(any())).thenReturn(Tasks.forResult(mockDocumentReference))
 
-        val result = authRepository.registerWithFirestore(username, name, email, password, cpassword)
+        // (Act) Jalankan fungsi
+        val result = authRepository.registerWithFirestore("newuser", "New User", "new@example.com", "pass", "pass")
 
+        // (Assert) Pastikan hasilnya sukses
         assertTrue(result.isSuccess)
-        val authResponse = result.getOrNull()
-        assertEquals("Registration successful!", authResponse?.message)
-        assertEquals(username, authResponse?.user?.username)
-        assertEquals(email, authResponse?.user?.email)
-        assertEquals(name, authResponse?.user?.name)
+        assertEquals("Registration successful!", result.getOrNull()?.message)
     }
 
     @Test
-    fun `registerWithFirestore returns failure if username already exists`() = runTest {
-        val username = "existinguser"
-        val name = "New User"
-        val email = "new@example.com"
-        val password = "newpassword"
-        val cpassword = "newpassword"
+    fun `registerWithFirestore harus gagal jika username sudah ada`() = runTest {
+        // (Arrange) Atur skenario: Username sudah terdaftar
+        val mockQuery = mock(Query::class.java)
+        val nonEmptySnapshot = mock(QuerySnapshot::class.java)
 
-        // Mock that username already exists
-        `when`(mockQuery.get()).thenReturn(mockTaskQuerySnapshot) // This is for the first query (username)
-        `when`(mockTaskQuerySnapshot.isSuccessful).thenReturn(true)
-        `when`(mockTaskQuerySnapshot.result).thenReturn(mockQuerySnapshot)
-        `when`(mockQuerySnapshot.isEmpty).thenReturn(false) // Username exists
+        `when`(mockCollectionReference.whereEqualTo("username", "existinguser")).thenReturn(mockQuery)
+        `when`(mockQuery.limit(1)).thenReturn(mockQuery)
+        `when`(mockQuery.get()).thenReturn(Tasks.forResult(nonEmptySnapshot))
+        `when`(nonEmptySnapshot.isEmpty).thenReturn(false) // Kunci: username ada
 
-        val result = authRepository.registerWithFirestore(username, name, email, password, cpassword)
+        // (Act) Jalankan fungsi
+        val result = authRepository.registerWithFirestore("existinguser", "User", "email@example.com", "pass", "pass")
 
+        // (Assert) Pastikan hasilnya gagal dengan pesan yang benar
         assertTrue(result.isFailure)
         assertEquals("Username already exists.", result.exceptionOrNull()?.message)
     }
 
     @Test
-    fun `registerWithFirestore returns failure if email already exists`() = runTest {
-        val username = "newuser"
-        val name = "New User"
+    fun `registerWithFirestore harus gagal jika email sudah ada`() = runTest {
         val email = "existing@example.com"
-        val password = "newpassword"
-        val cpassword = "newpassword"
 
-        // Mock username does not exist
-        `when`(mockQuery.get()) // First call for username check
-            .thenReturn(mockTaskQuerySnapshot)
-        `when`(mockTaskQuerySnapshot.isSuccessful).thenReturn(true)
-        `when`(mockTaskQuerySnapshot.result).thenReturn(mockQuerySnapshot)
-        `when`(mockQuerySnapshot.isEmpty).thenReturn(true) // Username does not exist
+        // (Arrange) Atur skenario: Username belum ada, tapi email sudah ada
+        val mockUsernameQuery = mock(Query::class.java)
+        val mockEmailQuery = mock(Query::class.java)
+        val emptySnapshot = mock(QuerySnapshot::class.java)
+        val nonEmptySnapshot = mock(QuerySnapshot::class.java)
 
-        // Mock email already exists
-        val mockExistingEmailQuerySnapshot = mock(QuerySnapshot::class.java)
-        val mockExistingEmailTask = mock(Task::class.java) as Task<QuerySnapshot>
-        `when`(mockExistingEmailQuerySnapshot.isEmpty).thenReturn(false) // Email exists
-        `when`(mockExistingEmailTask.isSuccessful).thenReturn(true)
-        `when`(mockExistingEmailTask.isComplete).thenReturn(true)
-        `when`(mockExistingEmailTask.result).thenReturn(mockExistingEmailQuerySnapshot)
-        `when`(mockFirestore.collection(anyString()).whereEqualTo("email", email).limit(anyLong()).get()).thenReturn(mockExistingEmailTask)
+        // Skenario untuk pengecekan username (return kosong)
+        `when`(mockCollectionReference.whereEqualTo("username", "newuser")).thenReturn(mockUsernameQuery)
+        `when`(mockUsernameQuery.limit(1)).thenReturn(mockUsernameQuery)
+        `when`(mockUsernameQuery.get()).thenReturn(Tasks.forResult(emptySnapshot))
+        `when`(emptySnapshot.isEmpty).thenReturn(true)
 
-        val result = authRepository.registerWithFirestore(username, name, email, password, cpassword)
+        // Skenario untuk pengecekan email (return tidak kosong)
+        `when`(mockCollectionReference.whereEqualTo("email", email)).thenReturn(mockEmailQuery)
+        `when`(mockEmailQuery.limit(1)).thenReturn(mockEmailQuery)
+        `when`(mockEmailQuery.get()).thenReturn(Tasks.forResult(nonEmptySnapshot))
+        `when`(nonEmptySnapshot.isEmpty).thenReturn(false) // Kunci: email ada
 
+        // (Act) Jalankan fungsi
+        val result = authRepository.registerWithFirestore("newuser", "User", email, "pass", "pass")
+
+        // (Assert) Pastikan hasilnya gagal dengan pesan yang benar
         assertTrue(result.isFailure)
         assertEquals("Email already exists.", result.exceptionOrNull()?.message)
     }
 
     @Test
-    fun `registerWithFirestore handles Firestore add exception`() = runTest {
-        val username = "newuser"
-        val name = "New User"
-        val email = "new@example.com"
-        val password = "newpassword"
-        val cpassword = "newpassword"
+    fun `registerWithFirestore harus menangani exception saat menambahkan dokumen`() = runTest {
+        // (Arrange) Atur skenario: Pengecekan username & email lolos, tapi operasi 'add' gagal
         val expectedException = Exception("Firestore add error")
+        val mockQuery = mock(Query::class.java)
+        val mockQuerySnapshot = mock(QuerySnapshot::class.java)
 
-        // Mock that username and email do not exist
+        `when`(mockCollectionReference.whereEqualTo("username", "user")).thenReturn(mockQuery)
+        `when`(mockCollectionReference.whereEqualTo("email", "email@example.com")).thenReturn(mockQuery)
+        `when`(mockQuery.limit(1)).thenReturn(mockQuery)
+        `when`(mockQuery.get()).thenReturn(Tasks.forResult(mockQuerySnapshot))
         `when`(mockQuerySnapshot.isEmpty).thenReturn(true)
+        `when`(mockCollectionReference.add(any())).thenReturn(Tasks.forException(expectedException)) // Kunci: 'add' gagal
 
-        // Mock add operation to fail
-        `when`(mockTaskDocumentReference.isSuccessful).thenReturn(false)
-        `when`(mockTaskDocumentReference.exception).thenReturn(expectedException)
+        // (Act) Jalankan fungsi
+        val result = authRepository.registerWithFirestore("user", "Name", "email@example.com", "pass", "pass")
 
-        val result = authRepository.registerWithFirestore(username, name, email, password, cpassword)
-
+        // (Assert) Pastikan hasilnya gagal dengan exception yang sama
         assertTrue(result.isFailure)
-        assertEquals("Firestore add error", result.exceptionOrNull()?.message)
+        assertEquals(expectedException, result.exceptionOrNull())
     }
 }

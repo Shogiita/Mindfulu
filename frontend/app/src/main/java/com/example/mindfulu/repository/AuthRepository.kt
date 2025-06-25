@@ -2,16 +2,25 @@ package com.example.mindfulu.repository
 
 import com.example.mindfulu.App
 import com.example.mindfulu.data.AuthResponse
-import com.example.mindfulu.data.LoginRequest
-import com.example.mindfulu.data.RegisterRequest
 import com.example.mindfulu.data.UserResponse
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-class AuthRepository {
+/**
+ * Repository untuk menangani otentikasi (login dan register) menggunakan Firestore.
+ *
+ * @property db Instance dari FirebaseFirestore yang disuntikkan (injected) untuk mempermudah testing.
+ */
+class AuthRepository(private val db: FirebaseFirestore) {
+    // webService tidak lagi digunakan di sini, tapi kita biarkan jika ada rencana pengembangan.
     private val webService = App.retrofitService
-    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
+    /**
+     * Melakukan proses login dengan memverifikasi username dan password di Firestore.
+     * @param username Username pengguna.
+     * @param password Password pengguna (seharusnya sudah di-hash).
+     * @return Result yang berisi AuthResponse jika berhasil, atau Exception jika gagal.
+     */
     suspend fun loginWithFirestore(username: String, password: String): Result<AuthResponse> {
         return try {
             val querySnapshot = db.collection("users")
@@ -29,7 +38,7 @@ class AuthRepository {
                 val storedName = userDocument.getString("name")
                 val userId = userDocument.id
 
-               if (storedPassword == password) {
+                if (storedPassword == password) {
                     val userResponse = UserResponse(
                         id = userId.hashCode(),
                         username = username,
@@ -46,6 +55,11 @@ class AuthRepository {
         }
     }
 
+    /**
+     * Melakukan proses registrasi dengan menyimpan data pengguna baru ke Firestore.
+     * Memeriksa apakah username atau email sudah ada sebelum membuat akun baru.
+     * @return Result yang berisi AuthResponse jika berhasil, atau Exception jika gagal.
+     */
     suspend fun registerWithFirestore(
         username: String,
         name: String,
@@ -54,6 +68,7 @@ class AuthRepository {
         cpassword: String
     ): Result<AuthResponse> {
         return try {
+            // Cek apakah username sudah ada
             val existingUsername = db.collection("users")
                 .whereEqualTo("username", username)
                 .limit(1)
@@ -64,6 +79,7 @@ class AuthRepository {
                 return Result.failure(Exception("Username already exists."))
             }
 
+            // Cek apakah email sudah ada
             val existingEmail = db.collection("users")
                 .whereEqualTo("email", email)
                 .limit(1)
@@ -74,17 +90,19 @@ class AuthRepository {
                 return Result.failure(Exception("Email already exists."))
             }
 
+            // Buat data pengguna baru
             val newUser = hashMapOf(
                 "username" to username,
                 "name" to name,
                 "email" to email,
-                "password" to password
+                "password" to password // Seharusnya password yang sudah di-hash
             )
 
+            // Tambahkan pengguna baru ke koleksi 'users'
             db.collection("users").add(newUser).await()
 
             val userResponse = UserResponse(
-                id = 0,
+                id = 0, // ID bisa di-generate secara berbeda jika perlu
                 username = username,
                 name = name,
                 email = email

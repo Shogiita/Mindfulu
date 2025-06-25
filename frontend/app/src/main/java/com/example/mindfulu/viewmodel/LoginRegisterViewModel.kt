@@ -6,10 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mindfulu.data.AuthResponse
 import com.example.mindfulu.repository.AuthRepository
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 class LoginRegisterViewModel : ViewModel() {
-    private val authRepository = AuthRepository()
+    // [DIUBAH] Suntikkan instance Firestore yang sebenarnya ke AuthRepository.
+    private val authRepository = AuthRepository(FirebaseFirestore.getInstance())
 
     private val _registerResult = MutableLiveData<AuthResponse>()
     val registerResult: LiveData<AuthResponse> get() = _registerResult
