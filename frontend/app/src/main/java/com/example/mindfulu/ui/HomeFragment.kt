@@ -36,7 +36,7 @@ class HomeFragment : Fragment() {
         activity?.intent?.getParcelableExtra<SuggestionResponse>("suggestions_data")?.let { suggestions ->
             displaySuggestions(suggestions)
         } ?: run {
-            // [NEW] Handle case where no suggestion data is available
+            // Handle case where no suggestion data is available
             Log.d("HomeFragment", "No suggestion data found in intent.")
             binding.tvMusicTitle.text = "No Music Suggestion"
             binding.tvMusicArtist.text = "Submit your mood to get one!"
@@ -53,7 +53,9 @@ class HomeFragment : Fragment() {
 
     private fun setupObservers() {
         suggestionViewModel.suggestions.observe(viewLifecycleOwner) { suggestionResponse ->
-            displaySuggestions(suggestionResponse!!)
+            suggestionResponse?.let {
+                displaySuggestions(it)
+            }
         }
     }
 
@@ -64,10 +66,17 @@ class HomeFragment : Fragment() {
         binding.tvMusicReason.text = music.alasan
 
         binding.btnPlayMusic.setOnClickListener {
-            music.linkVideo?.let { url ->
-                val bundle = bundleOf("video_url_key" to url)
-                findNavController().navigate(R.id.action_homeFragment_to_youtubeFragment, bundle)
-            }
+            // Hardcode the YouTube URLs here
+            val hardcodedYoutubeUrl1 = "https://www.youtube.com/embed/dQw4w9WgXcQ" // Rick Astley - Never Gonna Give You Up
+            val hardcodedYoutubeUrl2 = "https://www.youtube.com/embed/GDL9n0wMh3k" // Lo-fi Hip Hop Radio - beats to relax/study to
+            val hardcodedYoutubeUrl3 = "https://www.youtube.com/embed/kf_s5-lqLg8" // Relaxing Music for Stress Relief
+
+            val bundle = bundleOf(
+                "video_url_key_1" to hardcodedYoutubeUrl1,
+                "video_url_key_2" to hardcodedYoutubeUrl2,
+                "video_url_key_3" to hardcodedYoutubeUrl3
+            )
+            findNavController().navigate(R.id.action_homeFragment_to_youtubeFragment, bundle)
         }
 
         binding.rvActivities.layoutManager = LinearLayoutManager(context)

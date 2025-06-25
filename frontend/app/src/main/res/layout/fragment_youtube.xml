@@ -6,26 +6,65 @@
     android:background="@drawable/background"
     tools:context=".ui.YoutubeFragment">
 
-
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="50dp"
-            android:textColor="@color/white"
-            android:text="Your Mood Music Video"
-            android:textSize="18sp"
-            android:layout_marginBottom="20dp"/>
-
-        <WebView
-            android:id="@+id/youtube_webview"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="550dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
 
-    </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="50dp"
+                android:textColor="@color/white"
+                android:text="Your Mood Music Video 1"
+                android:textSize="18sp"
+                android:layout_marginBottom="10dp"/>
+
+            <WebView
+                android:id="@+id/youtube_webview_1"
+                android:layout_width="match_parent"
+                android:layout_height="250dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="20dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:text="Your Mood Music Video 2"
+                android:textSize="18sp"
+                android:layout_marginBottom="10dp"/>
+
+            <WebView
+                android:id="@+id/youtube_webview_2"
+                android:layout_width="match_parent"
+                android:layout_height="250dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="20dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:text="Your Mood Music Video 3"
+                android:textSize="18sp"
+                android:layout_marginBottom="10dp"/>
+
+            <WebView
+                android:id="@+id/youtube_webview_3"
+                android:layout_width="match_parent"
+                android:layout_height="250dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="20dp" />
+
+        </LinearLayout>
+    </ScrollView>
 </FrameLayout>
