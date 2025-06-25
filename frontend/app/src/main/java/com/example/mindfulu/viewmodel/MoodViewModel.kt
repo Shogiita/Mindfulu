@@ -25,7 +25,6 @@ class MoodViewModel : ViewModel() {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> get() = _isLoading
 
-    // [DIUBAH] Fungsi sekarang menerima email dan meneruskannya ke repository
     fun postMood(mood: String, reason: String, email: String) {
         _isLoading.value = true
         viewModelScope.launch {
@@ -57,7 +56,6 @@ class MoodViewModel : ViewModel() {
         }
     }
 
-    // [DIUBAH] Fungsi sekarang menerima email dan meneruskannya ke repository
     fun getAllMoods(email: String) {
         _isLoading.value = true
         viewModelScope.launch {

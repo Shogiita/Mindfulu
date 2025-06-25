@@ -6,21 +6,9 @@ import com.example.mindfulu.data.UserResponse
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-/**
- * Repository untuk menangani otentikasi (login dan register) menggunakan Firestore.
- *
- * @property db Instance dari FirebaseFirestore yang disuntikkan (injected) untuk mempermudah testing.
- */
 class AuthRepository(private val db: FirebaseFirestore) {
-    // webService tidak lagi digunakan di sini, tapi kita biarkan jika ada rencana pengembangan.
     private val webService = App.retrofitService
 
-    /**
-     * Melakukan proses login dengan memverifikasi username dan password di Firestore.
-     * @param username Username pengguna.
-     * @param password Password pengguna (seharusnya sudah di-hash).
-     * @return Result yang berisi AuthResponse jika berhasil, atau Exception jika gagal.
-     */
     suspend fun loginWithFirestore(username: String, password: String): Result<AuthResponse> {
         return try {
             val querySnapshot = db.collection("users")

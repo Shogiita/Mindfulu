@@ -25,11 +25,11 @@ data class MusicSuggestion(
     val artis: String,
     val alasan: String,
     val linkVideo: String?
-) : Parcelable // Implement Parcelable
+) : Parcelable
 
 @Parcelize
 @JsonClass(generateAdapter = true)
 data class ActivitySuggestion(
     val kegiatan: String,
     val deskripsi: String
-) : Parcelable // Implement Parcelable
+) : Parcelable

@@ -11,7 +11,6 @@ import java.io.IOException
 class MoodRepository {
     private val webService = App.retrofitService
 
-    // [DIUBAH] Fungsi sekarang menerima email untuk dimasukkan ke dalam request body
     suspend fun postMood(mood: String, reason: String, email: String): Result<MoodResponse> {
         return try {
             val request = MoodRequest(mood, reason, email)

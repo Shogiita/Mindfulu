@@ -1,4 +1,3 @@
-// frontend/app/src/main/java/com/example/mindfulu/repository/SessionRepository.kt
 package com.example.mindfulu.repository
 
 import android.content.Context

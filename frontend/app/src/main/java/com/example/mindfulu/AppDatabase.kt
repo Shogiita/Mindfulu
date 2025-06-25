@@ -7,12 +7,10 @@ import androidx.room.RoomDatabase
 import com.example.mindfulu.entity.RecommendationCacheEntity
 import com.example.mindfulu.entity.UserSessionEntity
 
-// [DIUBAH] Tambahkan entitas baru ke array entities
 @Database(entities = [MoodEntity::class, UserSessionEntity::class, RecommendationCacheEntity::class], version = 2) // [DIUBAH] Tingkatkan versi database menjadi 2
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun moodDao(): MoodDao
-    // [BARU] Deklarasi DAO baru
     abstract fun userSessionDao(): UserSessionDao
     abstract fun recommendationDao(): RecommendationDao
 
@@ -25,9 +23,9 @@ abstract class AppDatabase : RoomDatabase() {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "mindfulu" // Nama database
+                    "mindfulu"
                 )
-                    .fallbackToDestructiveMigration() // [PENTING] Gunakan ini saat development untuk mengizinkan perubahan skema database tanpa migrasi
+                    .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }
             }

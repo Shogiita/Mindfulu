@@ -43,7 +43,6 @@ class App : Application() {
             return digest.fold("", { str, it -> str + "%02x".format(it) })
         }
 
-        // [BARU] Fungsi untuk memeriksa apakah dua timestamp berada pada hari yang sama
         fun isSameDay(timestamp1: Long, timestamp2: Long): Boolean {
             val cal1 = Calendar.getInstance()
             cal1.timeInMillis = timestamp1

@@ -31,7 +31,6 @@ class SuggestionViewModel(application: Application) : AndroidViewModel(applicati
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> get() = _isLoading
 
-    // [MODIFIED] getSuggestions function now accepts an email for caching purposes
     fun getSuggestions(mood: String, reason: String, email: String) {
         _isLoading.value = true
         viewModelScope.launch {
@@ -40,7 +39,6 @@ class SuggestionViewModel(application: Application) : AndroidViewModel(applicati
                 result.fold(
                     onSuccess = { suggestionResponse ->
                         _suggestions.postValue(suggestionResponse)
-                        // [NEW] Cache the successful response
                         cacheSuggestion(email, suggestionResponse)
                         Log.d("SuggestionViewModel", "Suggestions fetched and cached successfully.")
                     },
@@ -58,25 +56,20 @@ class SuggestionViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    // [NEW] Function to load suggestions, either from cache or network
     fun loadSuggestionsForToday(email: String, mood: String, reason: String) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                // Try to get from cache first
                 val cached = cacheRepository.getRecommendationForToday(email)
                 if (cached != null) {
-                    // If it exists, deserialize and display it
                     val suggestionResponse = moshi.adapter(SuggestionResponse::class.java).fromJson(cached.suggestionsJson)
                     if (suggestionResponse != null) {
                         _suggestions.postValue(suggestionResponse)
                         Log.d("SuggestionViewModel", "Suggestions loaded from cache.")
                     } else {
-                        // If deserialization fails, fetch from network
                         getSuggestions(mood, reason, email)
                     }
                 } else {
-                    // If not in cache, fetch from network
                     getSuggestions(mood, reason, email)
                 }
             } catch (e: Exception) {
@@ -88,7 +81,6 @@ class SuggestionViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    // [NEW] Helper function to save suggestions to the cache
     private suspend fun cacheSuggestion(email: String, response: SuggestionResponse) {
         val jsonString = moshi.adapter(SuggestionResponse::class.java).toJson(response)
         val startOfDay = Calendar.getInstance().apply {

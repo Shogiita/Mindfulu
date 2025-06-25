@@ -10,7 +10,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 class LoginRegisterViewModel : ViewModel() {
-    // [DIUBAH] Suntikkan instance Firestore yang sebenarnya ke AuthRepository.
     private val authRepository = AuthRepository(FirebaseFirestore.getInstance())
 
     private val _registerResult = MutableLiveData<AuthResponse>()

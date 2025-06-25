@@ -38,12 +38,10 @@ class MoodHistoryAdapter(
             binding.tvMood.text = mood.mood
             binding.tvReason.text = mood.reason
 
-            // Format date
             val date = Date(mood.date)
             val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
             binding.tvDate.text = formatter.format(date)
 
-            // Set mood emoji based on mood type
             binding.ivMoodEmoji.text = when(mood.mood.toLowerCase()) {
                 "sad" -> "😢"
                 "bad" -> "😞"

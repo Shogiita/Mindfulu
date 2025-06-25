@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "user_sessions")
 data class UserSessionEntity(
-    @PrimaryKey val userEmail: String, // Email pengguna sebagai PK
+    @PrimaryKey val userEmail: String,
     val isLoggedIn: Boolean,
-    val lastLoginTimestamp: Long // Timestamp login terakhir untuk referensi
+    val lastLoginTimestamp: Long
 )

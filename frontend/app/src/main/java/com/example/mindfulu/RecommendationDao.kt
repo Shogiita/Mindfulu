@@ -15,7 +15,6 @@ interface RecommendationDao {
     @Query("SELECT * FROM recommendation_cache WHERE userEmail = :email AND date = :date LIMIT 1")
     suspend fun getRecommendationForDate(email: String, date: Long): RecommendationCacheEntity?
 
-    // Opsional: Untuk menghapus cache lama jika diperlukan
     @Query("DELETE FROM recommendation_cache WHERE userEmail = :email AND date < :thresholdDate")
     suspend fun deleteOldRecommendations(email: String, thresholdDate: Long)
 
